@@ -810,20 +810,36 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 </div>
 
 <div class="modal-overlay" id="modalAdd">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:420px;">
     <div class="modal-head"><h2 id="modalAddTitle">Add Product</h2><button class="modal-close" onclick="Modal.close('modalAdd')">&times;</button></div>
     <div class="modal-body">
       <input type="hidden" id="editProductId">
       <div class="form-row"><label class="form-label">Name</label><input type="text" id="addName"></div>
       <div class="form-grid">
-        <div class="form-row"><label class="form-label">Category</label><select id="addCat"></select></div>
-        <div class="form-row"><label class="form-label">Price $</label><input type="number" id="addPrice" step="0.01"></div>
+        <div class="form-row"><label class="form-label">Category</label><select id="addCat" onchange="Inv.toggleBottleFields()"></select></div>
+        <div class="form-row"><label class="form-label">Custom Emoji</label><input type="text" id="addEmoji" placeholder="🥃" style="text-align:center;font-size:18px;"></div>
       </div>
+      <!-- Bottle Pricing (for liquor) -->
+      <div id="bottlePricingSection" style="background:var(--bg-elevated);padding:12px;border-radius:var(--radius-md);margin:10px 0;">
+        <div style="font-size:11px;color:var(--amber-500);font-weight:600;margin-bottom:8px;">📦 BOTTLE PRICING</div>
+        <div class="form-grid">
+          <div class="form-row"><label class="form-label">Bottle Cost $</label><input type="number" id="addBottleCost" step="0.01" placeholder="25.00" oninput="Inv.calcPrice()"></div>
+          <div class="form-row"><label class="form-label">Bottle ml</label><input type="number" id="addBottleSize" value="750" oninput="Inv.calcPrice()"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row"><label class="form-label">Pour oz</label><input type="number" id="addPourSize" value="1.5" step="0.5" oninput="Inv.calcPrice()"></div>
+          <div class="form-row"><label class="form-label">Markup (×)</label><input type="number" id="addMarkup" value="4" step="0.5" oninput="Inv.calcPrice()"></div>
+        </div>
+        <div id="priceCalcDisplay" style="text-align:center;padding:8px;background:var(--bg-card);border-radius:var(--radius-sm);margin-top:8px;font-size:12px;color:var(--text-muted);display:none;">
+          <span id="poursPerBottle">16</span> pours × $<span id="costPerPour">1.56</span> cost × <span id="markupDisplay">4</span>× = <strong style="color:var(--amber-300);font-size:16px;">$<span id="calcRetailPrice">6.25</span></strong>
+        </div>
+      </div>
+      <!-- Retail Price (direct entry or calculated) -->
       <div class="form-grid">
-        <div class="form-row"><label class="form-label">Stock</label><input type="number" id="addStock" value="1"></div>
-        <div class="form-row"><label class="form-label">Low Alert</label><input type="number" id="addAlert" value="2"></div>
+        <div class="form-row"><label class="form-label">Retail Price $</label><input type="number" id="addPrice" step="0.01" placeholder="Auto or manual"></div>
+        <div class="form-row"><label class="form-label">Stock (bottles)</label><input type="number" id="addStock" value="1"></div>
       </div>
-      <div class="form-row"><label class="form-label">Custom Emoji</label><input type="text" id="addEmoji" placeholder="Leave blank for category default" style="text-align:center;font-size:18px;"></div>
+      <div class="form-row"><label class="form-label">Low Alert</label><input type="number" id="addAlert" value="1" style="width:80px;"></div>
       <button class="btn-sm btn-gold btn-full" onclick="Inv.saveProduct()" style="padding:14px;margin-top:8px;" id="btnSaveProduct">Add Product</button>
     </div>
   </div>
@@ -1060,83 +1076,88 @@ const App = {
       { name:'Age Statement', category:'flight', price:35, stock:99, alert:1, emoji:'📅', desc:'10yr, 12yr, 15yr selections' },
       { name:'Barrel Proof', category:'flight', price:42, stock:99, alert:1, emoji:'🔥', desc:'ECBP, Bookers, Rare Breed' },
 
-      // ═══ WELL BOURBONS ($8-10) ═══
-      { name:'Evan Williams Black', category:'well', price:8, stock:20, alert:4, emoji:'🥃' },
-      { name:'Jim Beam White', category:'well', price:8, stock:20, alert:4, emoji:'🥃' },
-      { name:'Old Crow', category:'well', price:7, stock:15, alert:3, emoji:'🥃' },
-      { name:'Early Times', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
-      { name:'Ancient Age', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
-      { name:'Benchmark', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
+      // ═══ WELL BOURBONS (bottleCost: wholesale, price: retail per 1.5oz pour @ 4x markup) ═══
+      { name:'Evan Williams Black', category:'well', bottleCost:15, price:6, stock:2, alert:1, emoji:'🥃', markup:4 },
+      { name:'Jim Beam White', category:'well', bottleCost:18, price:7, stock:2, alert:1, emoji:'🥃', markup:4 },
+      { name:'Old Crow', category:'well', bottleCost:12, price:5, stock:2, alert:1, emoji:'🥃', markup:4 },
+      { name:'Early Times', category:'well', bottleCost:14, price:6, stock:2, alert:1, emoji:'🥃', markup:4 },
+      { name:'Ancient Age', category:'well', bottleCost:13, price:5, stock:2, alert:1, emoji:'🥃', markup:4 },
+      { name:'Benchmark', category:'well', bottleCost:12, price:5, stock:2, alert:1, emoji:'🥃', markup:4 },
 
-      // ═══ CALL BOURBONS ($10-14) ═══
-      { name:'Buffalo Trace', category:'call', price:10, stock:12, alert:3, emoji:'🦬' },
-      { name:'Makers Mark', category:'call', price:11, stock:12, alert:3, emoji:'🔴' },
-      { name:'Wild Turkey 101', category:'call', price:10, stock:12, alert:3, emoji:'🦃' },
-      { name:'Four Roses Yellow', category:'call', price:10, stock:10, alert:2, emoji:'🌹' },
-      { name:'Woodford Reserve', category:'call', price:12, stock:10, alert:2, emoji:'🏇' },
-      { name:'Knob Creek 9yr', category:'call', price:12, stock:10, alert:2, emoji:'🪵' },
-      { name:'Bulleit Bourbon', category:'call', price:11, stock:10, alert:2, emoji:'🎯' },
-      { name:'Elijah Craig SB', category:'call', price:11, stock:10, alert:2, emoji:'⛪' },
-      { name:'1792 Small Batch', category:'call', price:11, stock:8, alert:2, emoji:'🥃' },
-      { name:'Larceny', category:'call', price:10, stock:10, alert:2, emoji:'🔓' },
-      { name:'Old Forester 86', category:'call', price:10, stock:10, alert:2, emoji:'🌳' },
-      { name:'Wild Turkey Rare Breed', category:'call', price:14, stock:8, alert:2, emoji:'🦃' },
+      // ═══ CALL BOURBONS ═══
+      { name:'Buffalo Trace', category:'call', bottleCost:26, price:10, stock:2, alert:1, emoji:'🦬', markup:4 },
+      { name:'Makers Mark', category:'call', bottleCost:28, price:11, stock:2, alert:1, emoji:'🔴', markup:4 },
+      { name:'Wild Turkey 101', category:'call', bottleCost:25, price:10, stock:2, alert:1, emoji:'🦃', markup:4 },
+      { name:'Four Roses Yellow', category:'call', bottleCost:22, price:9, stock:2, alert:1, emoji:'🌹', markup:4 },
+      { name:'Woodford Reserve', category:'call', bottleCost:35, price:14, stock:2, alert:1, emoji:'🏇', markup:4 },
+      { name:'Knob Creek 9yr', category:'call', bottleCost:35, price:14, stock:2, alert:1, emoji:'🪵', markup:4 },
+      { name:'Bulleit Bourbon', category:'call', bottleCost:28, price:11, stock:2, alert:1, emoji:'🎯', markup:4 },
+      { name:'Elijah Craig SB', category:'call', bottleCost:30, price:12, stock:2, alert:1, emoji:'⛪', markup:4 },
+      { name:'1792 Small Batch', category:'call', bottleCost:32, price:13, stock:1, alert:1, emoji:'🥃', markup:4 },
+      { name:'Larceny', category:'call', bottleCost:25, price:10, stock:2, alert:1, emoji:'🔓', markup:4 },
+      { name:'Old Forester 86', category:'call', bottleCost:24, price:10, stock:2, alert:1, emoji:'🌳', markup:4 },
+      { name:'Wild Turkey Rare Breed', category:'call', bottleCost:45, price:18, stock:1, alert:1, emoji:'🦃', markup:4 },
 
-      // ═══ PREMIUM BOURBONS ($14-25) ═══
-      { name:'Angels Envy', category:'premium', price:16, stock:6, alert:2, emoji:'😇' },
-      { name:'Basil Haydens', category:'premium', price:15, stock:6, alert:2, emoji:'🌿' },
-      { name:'Jeffersons Reserve', category:'premium', price:16, stock:5, alert:2, emoji:'📜' },
-      { name:'Old Forester 1910', category:'premium', price:18, stock:5, alert:2, emoji:'🏛️' },
-      { name:'Old Forester 1920', category:'premium', price:20, stock:5, alert:2, emoji:'🎭' },
-      { name:'Russells Reserve 10yr', category:'premium', price:16, stock:6, alert:2, emoji:'🦃' },
-      { name:'Elijah Craig BP', category:'premium', price:22, stock:4, alert:1, emoji:'🔥' },
-      { name:'Bookers', category:'premium', price:25, stock:4, alert:1, emoji:'📕' },
-      { name:'Bakers 7yr', category:'premium', price:18, stock:5, alert:2, emoji:'🥧' },
-      { name:'Henry McKenna 10yr BiB', category:'premium', price:18, stock:4, alert:1, emoji:'🏆' },
-      { name:'Four Roses SiB', category:'premium', price:16, stock:6, alert:2, emoji:'🌹' },
-      { name:'Knob Creek 12yr', category:'premium', price:18, stock:5, alert:2, emoji:'🪵' },
-      { name:'Wilderness Trail', category:'premium', price:18, stock:4, alert:1, emoji:'🥾' },
-      { name:'New Riff SiB', category:'premium', price:17, stock:5, alert:2, emoji:'🎸' },
+      // ═══ PREMIUM BOURBONS ═══
+      { name:'Angels Envy', category:'premium', bottleCost:50, price:20, stock:1, alert:1, emoji:'😇', markup:4 },
+      { name:'Basil Haydens', category:'premium', bottleCost:42, price:17, stock:1, alert:1, emoji:'🌿', markup:4 },
+      { name:'Jeffersons Reserve', category:'premium', bottleCost:55, price:22, stock:1, alert:1, emoji:'📜', markup:4 },
+      { name:'Old Forester 1910', category:'premium', bottleCost:55, price:22, stock:1, alert:1, emoji:'🏛️', markup:4 },
+      { name:'Old Forester 1920', category:'premium', bottleCost:65, price:26, stock:1, alert:1, emoji:'🎭', markup:4 },
+      { name:'Russells Reserve 10yr', category:'premium', bottleCost:40, price:16, stock:1, alert:1, emoji:'🦃', markup:4 },
+      { name:'Elijah Craig BP', category:'premium', bottleCost:70, price:28, stock:1, alert:1, emoji:'🔥', markup:4 },
+      { name:'Bookers', category:'premium', bottleCost:90, price:36, stock:1, alert:1, emoji:'📕', markup:4 },
+      { name:'Bakers 7yr', category:'premium', bottleCost:60, price:24, stock:1, alert:1, emoji:'🥧', markup:4 },
+      { name:'Henry McKenna 10yr BiB', category:'premium', bottleCost:45, price:18, stock:1, alert:1, emoji:'🏆', markup:4 },
+      { name:'Four Roses SiB', category:'premium', bottleCost:45, price:18, stock:1, alert:1, emoji:'🌹', markup:4 },
+      { name:'Knob Creek 12yr', category:'premium', bottleCost:55, price:22, stock:1, alert:1, emoji:'🪵', markup:4 },
+      { name:'Wilderness Trail', category:'premium', bottleCost:55, price:22, stock:1, alert:1, emoji:'🥾', markup:4 },
+      { name:'New Riff SiB', category:'premium', bottleCost:50, price:20, stock:1, alert:1, emoji:'🎸', markup:4 },
 
-      // ═══ TOP SHELF / ALLOCATED ($25-75) ═══
-      { name:'Blantons', category:'topshelf', price:28, stock:3, alert:1, emoji:'🐴' },
-      { name:'Eagle Rare 10yr', category:'topshelf', price:18, stock:4, alert:1, emoji:'🦅' },
-      { name:'Weller Special Reserve', category:'topshelf', price:18, stock:3, alert:1, emoji:'🌾' },
-      { name:'Weller Antique 107', category:'topshelf', price:28, stock:2, alert:1, emoji:'🌾' },
-      { name:'Weller 12yr', category:'topshelf', price:45, stock:2, alert:1, emoji:'🌾' },
-      { name:'EH Taylor Small Batch', category:'topshelf', price:32, stock:2, alert:1, emoji:'🎖️' },
-      { name:'EH Taylor SiB', category:'topshelf', price:48, stock:1, alert:1, emoji:'🎖️' },
-      { name:'Elijah Craig 18yr', category:'topshelf', price:55, stock:2, alert:1, emoji:'⛪' },
-      { name:'Four Roses LE SmB', category:'topshelf', price:50, stock:2, alert:1, emoji:'🌹' },
-      { name:'Michters 10yr', category:'topshelf', price:45, stock:2, alert:1, emoji:'🥃' },
-      { name:'Rabbit Hole Dareringer', category:'topshelf', price:35, stock:3, alert:1, emoji:'🐰' },
-      { name:'Kentucky Owl', category:'topshelf', price:60, stock:2, alert:1, emoji:'🦉' },
+      // ═══ TOP SHELF / ALLOCATED (harder to find, higher markup) ═══
+      { name:'Blantons', category:'topshelf', bottleCost:65, price:32, stock:1, alert:1, emoji:'🐴', markup:5 },
+      { name:'Eagle Rare 10yr', category:'topshelf', bottleCost:35, price:18, stock:1, alert:1, emoji:'🦅', markup:5 },
+      { name:'Weller Special Reserve', category:'topshelf', bottleCost:30, price:15, stock:1, alert:1, emoji:'🌾', markup:5 },
+      { name:'Weller Antique 107', category:'topshelf', bottleCost:55, price:28, stock:1, alert:1, emoji:'🌾', markup:5 },
+      { name:'Weller 12yr', category:'topshelf', bottleCost:90, price:45, stock:1, alert:1, emoji:'🌾', markup:5 },
+      { name:'EH Taylor Small Batch', category:'topshelf', bottleCost:65, price:32, stock:1, alert:1, emoji:'🎖️', markup:5 },
+      { name:'EH Taylor SiB', category:'topshelf', bottleCost:100, price:50, stock:1, alert:1, emoji:'🎖️', markup:5 },
+      { name:'Elijah Craig 18yr', category:'topshelf', bottleCost:150, price:75, stock:1, alert:1, emoji:'⛪', markup:5 },
+      { name:'Four Roses LE SmB', category:'topshelf', bottleCost:140, price:70, stock:1, alert:1, emoji:'🌹', markup:5 },
+      { name:'Michters 10yr', category:'topshelf', bottleCost:170, price:85, stock:1, alert:1, emoji:'🥃', markup:5 },
+      { name:'Rabbit Hole Dareringer', category:'topshelf', bottleCost:70, price:35, stock:1, alert:1, emoji:'🐰', markup:5 },
+      { name:'Kentucky Owl', category:'topshelf', bottleCost:150, price:75, stock:1, alert:1, emoji:'🦉', markup:5 },
 
-      // ═══ RARE / VINTAGE ($75-400+) ═══
-      { name:'Pappy 10yr', category:'rare', price:85, stock:1, alert:1, emoji:'👴' },
-      { name:'Pappy 12yr Lot B', category:'rare', price:125, stock:1, alert:1, emoji:'👴' },
-      { name:'Pappy 15yr', category:'rare', price:175, stock:1, alert:1, emoji:'👴' },
-      { name:'Pappy 20yr', category:'rare', price:275, stock:1, alert:1, emoji:'👴' },
-      { name:'Pappy 23yr', category:'rare', price:375, stock:1, alert:1, emoji:'👴' },
-      { name:'Old Rip Van Winkle 10yr', category:'rare', price:85, stock:1, alert:1, emoji:'😴' },
-      { name:'Van Winkle 12yr', category:'rare', price:110, stock:1, alert:1, emoji:'😴' },
-      { name:'George T Stagg', category:'rare', price:95, stock:1, alert:1, emoji:'🦌' },
-      { name:'William Larue Weller', category:'rare', price:95, stock:1, alert:1, emoji:'🌾' },
-      { name:'Thomas H Handy', category:'rare', price:75, stock:1, alert:1, emoji:'✒️' },
-      { name:'BTAC Sazerac 18yr', category:'rare', price:125, stock:1, alert:1, emoji:'⚜️' },
-      { name:'Double Eagle Very Rare', category:'rare', price:350, stock:1, alert:1, emoji:'🦅' },
-      { name:'Willett Family 8yr', category:'rare', price:85, stock:1, alert:1, emoji:'🏚️' },
+      // ═══ RARE / VINTAGE (secondary market prices, premium markup) ═══
+      { name:'Pappy 10yr', category:'rare', bottleCost:350, price:85, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Pappy 12yr Lot B', category:'rare', bottleCost:500, price:125, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:175, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:275, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Pappy 23yr', category:'rare', bottleCost:1500, price:375, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Old Rip Van Winkle 10yr', category:'rare', bottleCost:350, price:85, stock:1, alert:1, emoji:'😴', markup:4 },
+      { name:'Van Winkle 12yr', category:'rare', bottleCost:450, price:110, stock:1, alert:1, emoji:'😴', markup:4 },
+      { name:'George T Stagg', category:'rare', bottleCost:400, price:95, stock:1, alert:1, emoji:'🦌', markup:4 },
+      { name:'William Larue Weller', category:'rare', bottleCost:400, price:95, stock:1, alert:1, emoji:'🌾', markup:4 },
+      { name:'Thomas H Handy', category:'rare', bottleCost:300, price:75, stock:1, alert:1, emoji:'✒️', markup:4 },
+      { name:'BTAC Sazerac 18yr', category:'rare', bottleCost:500, price:125, stock:1, alert:1, emoji:'⚜️', markup:4 },
+      { name:'Double Eagle Very Rare', category:'rare', bottleCost:1400, price:350, stock:1, alert:1, emoji:'🦅', markup:4 },
+      { name:'Willett Family 8yr', category:'rare', bottleCost:350, price:85, stock:1, alert:1, emoji:'🏚️', markup:4 },
 
-      // ═══ BEER ═══
-      { name:'Bud Light', category:'beer', price:4, stock:48, alert:10, emoji:'🍺' },
-      { name:'Budweiser', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
-      { name:'Miller Lite', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
-      { name:'Coors Light', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
-      { name:'Stella Artois', category:'beer', price:6, stock:24, alert:6, emoji:'⭐' },
-      { name:'Blue Moon', category:'beer', price:6, stock:24, alert:6, emoji:'🌙' },
-      { name:'Local IPA', category:'beer', price:7, stock:18, alert:4, emoji:'🍻' },
+      // ═══ TOP 10 BEERS (National Avg Prices 2025) ═══
+      { name:'Modelo Especial', category:'beer', price:7, stock:24, alert:6, emoji:'🇲🇽' },
+      { name:'Bud Light', category:'beer', price:5, stock:24, alert:6, emoji:'🍺' },
+      { name:'Michelob Ultra', category:'beer', price:6, stock:24, alert:6, emoji:'💪' },
+      { name:'Corona Extra', category:'beer', price:7, stock:24, alert:6, emoji:'🌴' },
+      { name:'Coors Light', category:'beer', price:5, stock:24, alert:6, emoji:'🏔️' },
+      { name:'Miller Lite', category:'beer', price:5, stock:24, alert:6, emoji:'🍺' },
+      { name:'Budweiser', category:'beer', price:5, stock:24, alert:6, emoji:'👑' },
+      { name:'Heineken', category:'beer', price:7, stock:18, alert:4, emoji:'⭐' },
+      { name:'Busch Light', category:'beer', price:4, stock:24, alert:6, emoji:'🦌' },
+      { name:'Natural Light', category:'beer', price:4, stock:24, alert:6, emoji:'☀️' },
+      // ═══ LOCAL / SPECIALTY ═══
       { name:'KY Bourbon Barrel Ale', category:'beer', price:8, stock:12, alert:3, emoji:'🛢️' },
-      { name:'Guinness', category:'beer', price:7, stock:18, alert:4, emoji:'🖤' },
+      { name:'Blue Moon', category:'beer', price:6, stock:18, alert:4, emoji:'🌙' },
+      { name:'Guinness', category:'beer', price:7, stock:12, alert:3, emoji:'🖤' },
 
       // ═══ WINE ═══
       { name:'House Cab', category:'wine', price:9, stock:12, alert:3, emoji:'🍷' },
@@ -1644,6 +1665,9 @@ const Cart = {
 /* ═══════════════════════════════════════════
    INVENTORY
    ═══════════════════════════════════════════ */
+// Liquor categories that use bottle pricing
+const LIQUOR_CATS = ['well', 'call', 'premium', 'topshelf', 'rare'];
+
 const Inv = {
   render() {
     const catF = document.getElementById('invFilterCat').value;
@@ -1657,8 +1681,9 @@ const Inv = {
     document.getElementById('invBody').innerHTML = items.sort((a, b) => a.name.localeCompare(b.name)).map(p => {
       const cat = db.categories.find(c => c.id === p.category) || { name: '?', icon: '📦' };
       const stockClass = p.eightySixed ? 'badge-red-solid' : p.stock <= p.alert ? 'badge-danger' : p.stock <= p.alert * 2 ? 'badge-warning' : 'badge-success';
+      const costInfo = p.bottleCost ? `<div style="font-size:10px;color:var(--text-muted);">Cost: $${p.bottleCost} | ${p.markup || 4}×</div>` : '';
       return `<tr>
-        <td><strong>${p.emoji || cat.icon} ${p.name}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}</td>
+        <td><strong>${p.emoji || cat.icon} ${p.name}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}${costInfo}</td>
         <td>${cat.icon}</td>
         <td style="font-family:var(--font-mono);">$${p.price.toFixed(2)}</td>
         <td><span class="badge ${stockClass}">${p.stock}</span></td>
@@ -1669,6 +1694,36 @@ const Inv = {
         </td>
       </tr>`;
     }).join('');
+  },
+
+  toggleBottleFields() {
+    const cat = document.getElementById('addCat').value;
+    const show = LIQUOR_CATS.includes(cat);
+    document.getElementById('bottlePricingSection').style.display = show ? 'block' : 'none';
+    if (show) Inv.calcPrice();
+  },
+
+  calcPrice() {
+    const cost = parseFloat(document.getElementById('addBottleCost').value) || 0;
+    const bottleMl = parseFloat(document.getElementById('addBottleSize').value) || 750;
+    const pourOz = parseFloat(document.getElementById('addPourSize').value) || 1.5;
+    const markup = parseFloat(document.getElementById('addMarkup').value) || 4;
+    if (!cost) {
+      document.getElementById('priceCalcDisplay').style.display = 'none';
+      return;
+    }
+    // 750ml = ~25.36oz, so pours = bottleMl / (pourOz * 29.5735)
+    const bottleOz = bottleMl / 29.5735;
+    const pours = Math.floor(bottleOz / pourOz);
+    const costPerPour = cost / pours;
+    const retailPrice = costPerPour * markup;
+    document.getElementById('poursPerBottle').textContent = pours;
+    document.getElementById('costPerPour').textContent = costPerPour.toFixed(2);
+    document.getElementById('markupDisplay').textContent = markup;
+    document.getElementById('calcRetailPrice').textContent = retailPrice.toFixed(2);
+    document.getElementById('priceCalcDisplay').style.display = 'block';
+    // Auto-fill price field
+    document.getElementById('addPrice').value = retailPrice.toFixed(2);
   },
 
   openEdit(id) {
@@ -1682,7 +1737,12 @@ const Inv = {
     document.getElementById('addStock').value = p.stock;
     document.getElementById('addAlert').value = p.alert;
     document.getElementById('addEmoji').value = p.emoji || '';
+    document.getElementById('addBottleCost').value = p.bottleCost || '';
+    document.getElementById('addBottleSize').value = p.bottleSize || 750;
+    document.getElementById('addPourSize').value = p.pourSize || 1.5;
+    document.getElementById('addMarkup').value = p.markup || 4;
     document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+    Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
 
@@ -1718,9 +1778,15 @@ const Inv = {
     document.getElementById('addName').value = '';
     document.getElementById('addPrice').value = '';
     document.getElementById('addStock').value = '1';
-    document.getElementById('addAlert').value = '2';
+    document.getElementById('addAlert').value = '1';
     document.getElementById('addEmoji').value = '';
+    document.getElementById('addBottleCost').value = '';
+    document.getElementById('addBottleSize').value = '750';
+    document.getElementById('addPourSize').value = '1.5';
+    document.getElementById('addMarkup').value = '4';
+    document.getElementById('priceCalcDisplay').style.display = 'none';
     document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
 
@@ -1729,13 +1795,19 @@ const Inv = {
     const name = document.getElementById('addName').value.trim();
     const price = parseFloat(document.getElementById('addPrice').value);
     if (!name || !price) { toast('Name + price required', 'error'); return; }
+    const cat = document.getElementById('addCat').value;
     const data = {
       name,
-      category: document.getElementById('addCat').value,
+      category: cat,
       price,
       stock: parseInt(document.getElementById('addStock').value) || 0,
-      alert: parseInt(document.getElementById('addAlert').value) || 2,
-      emoji: document.getElementById('addEmoji').value.trim() || null
+      alert: parseInt(document.getElementById('addAlert').value) || 1,
+      emoji: document.getElementById('addEmoji').value.trim() || null,
+      // Bottle pricing (only for liquor categories)
+      bottleCost: LIQUOR_CATS.includes(cat) ? parseFloat(document.getElementById('addBottleCost').value) || null : null,
+      bottleSize: LIQUOR_CATS.includes(cat) ? parseFloat(document.getElementById('addBottleSize').value) || 750 : null,
+      pourSize: LIQUOR_CATS.includes(cat) ? parseFloat(document.getElementById('addPourSize').value) || 1.5 : null,
+      markup: LIQUOR_CATS.includes(cat) ? parseFloat(document.getElementById('addMarkup').value) || 4 : null
     };
     if (id) {
       const p = db.products.find(x => x.id === id);
