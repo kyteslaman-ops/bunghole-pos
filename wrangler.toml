@@ -1,0 +1,7 @@
+name = "bunghole-pos"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+account_id = "528d45e0c995a9264df2c5ec4161cf2a"
+
+[site]
+bucket = "./"
