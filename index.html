@@ -885,17 +885,23 @@ const ROOMS = [
 /* ═══════════════════════════════════════════
    DATA STORE
    ═══════════════════════════════════════════ */
-const DB_KEY = 'bunghole_pos_v3';
+const DB_KEY = 'bunghole_pos_v4';
 let db = {
   employees: [{ id: 'emp_owner', name: 'Owner', pin: '1234', role: 'manager', active: true }],
   categories: [
-    { id:'bourbon', name:'Bourbon', icon:'🥃' },
+    { id:'cocktail', name:'Cocktails', icon:'🍸' },
+    { id:'flight', name:'Flights', icon:'✈️' },
+    { id:'well', name:'Well', icon:'🥃' },
+    { id:'call', name:'Call', icon:'🥃' },
+    { id:'premium', name:'Premium', icon:'⭐' },
+    { id:'topshelf', name:'Top Shelf', icon:'👑' },
+    { id:'rare', name:'Rare/Vintage', icon:'💎' },
     { id:'beer', name:'Beer', icon:'🍺' },
     { id:'wine', name:'Wine', icon:'🍷' },
-    { id:'cocktail', name:'Cocktails', icon:'🍸' },
     { id:'snacks', name:'Snacks', icon:'🥨' },
     { id:'merch', name:'Merch', icon:'👕' },
-    { id:'nonalc', name:'Non-Alc', icon:'🥤' }
+    { id:'nonalc', name:'Non-Alc', icon:'🥤' },
+    { id:'mixer', name:'Mixers', icon:'🧊' }
   ],
   products: [],
   transactions: [],
@@ -1024,32 +1030,159 @@ const App = {
 
   seedData() {
     const seeds = [
-      { name:'Buffalo Trace', category:'bourbon', price:10, stock:12, alert:3 },
-      { name:'Eagle Rare 10yr', category:'bourbon', price:14, stock:6, alert:2 },
-      { name:"Maker's Mark", category:'bourbon', price:9, stock:10, alert:3 },
-      { name:'Woodford Reserve', category:'bourbon', price:12, stock:8, alert:2 },
-      { name:'Knob Creek 9yr', category:'bourbon', price:11, stock:7, alert:2 },
-      { name:'Wild Turkey 101', category:'bourbon', price:9, stock:10, alert:3 },
-      { name:'Four Roses Single', category:'bourbon', price:13, stock:5, alert:2 },
-      { name:'Elijah Craig', category:'bourbon', price:11, stock:8, alert:2 },
-      { name:'Bulleit Bourbon', category:'bourbon', price:10, stock:9, alert:3 },
-      { name:'1792 Small Batch', category:'bourbon', price:11, stock:6, alert:2 },
-      { name:'Heineken', category:'beer', price:5, stock:24, alert:6 },
-      { name:'Bud Light', category:'beer', price:4, stock:36, alert:8 },
-      { name:'Local IPA', category:'beer', price:6, stock:18, alert:4 },
-      { name:'House Red', category:'wine', price:8, stock:10, alert:3 },
-      { name:'House White', category:'wine', price:8, stock:10, alert:3 },
-      { name:'Old Fashioned', category:'cocktail', price:12, stock:99, alert:1 },
-      { name:'Mint Julep', category:'cocktail', price:11, stock:99, alert:1 },
-      { name:'Bourbon Smash', category:'cocktail', price:12, stock:99, alert:1 },
-      { name:'Pretzels', category:'snacks', price:6, stock:20, alert:4 },
-      { name:'Bourbon Pecans', category:'snacks', price:8, stock:15, alert:3 },
-      { name:'Bunghole T-Shirt', category:'merch', price:25, stock:12, alert:2 },
-      { name:'Bunghole Glass', category:'merch', price:15, stock:20, alert:4 },
-      { name:'Coke', category:'nonalc', price:3, stock:30, alert:6 },
-      { name:'Water', category:'nonalc', price:2, stock:48, alert:10 }
+      // ═══ TOP 20 BOURBON COCKTAILS (National Avg Prices) ═══
+      { name:'Old Fashioned', category:'cocktail', price:14, stock:99, alert:1, emoji:'🥃' },
+      { name:'Mint Julep', category:'cocktail', price:13, stock:99, alert:1, emoji:'🌿' },
+      { name:'Manhattan', category:'cocktail', price:14, stock:99, alert:1, emoji:'🍒' },
+      { name:'Whiskey Sour', category:'cocktail', price:12, stock:99, alert:1, emoji:'🍋' },
+      { name:'Boulevardier', category:'cocktail', price:14, stock:99, alert:1, emoji:'🍊' },
+      { name:'Kentucky Mule', category:'cocktail', price:12, stock:99, alert:1, emoji:'🫚' },
+      { name:'Bourbon Smash', category:'cocktail', price:13, stock:99, alert:1, emoji:'🫐' },
+      { name:'Paper Plane', category:'cocktail', price:14, stock:99, alert:1, emoji:'✈️' },
+      { name:'Brown Derby', category:'cocktail', price:13, stock:99, alert:1, emoji:'🎩' },
+      { name:'Gold Rush', category:'cocktail', price:13, stock:99, alert:1, emoji:'🍯' },
+      { name:'New York Sour', category:'cocktail', price:14, stock:99, alert:1, emoji:'🍷' },
+      { name:'Sazerac', category:'cocktail', price:14, stock:99, alert:1, emoji:'⚜️' },
+      { name:'Hot Toddy', category:'cocktail', price:11, stock:99, alert:1, emoji:'☕' },
+      { name:'Lynchburg Lemonade', category:'cocktail', price:12, stock:99, alert:1, emoji:'🍋' },
+      { name:'Bourbon Sidecar', category:'cocktail', price:13, stock:99, alert:1, emoji:'🚗' },
+      { name:'Ward 8', category:'cocktail', price:13, stock:99, alert:1, emoji:'8️⃣' },
+      { name:'Revolver', category:'cocktail', price:14, stock:99, alert:1, emoji:'🔫' },
+      { name:'Kentucky Colonel', category:'cocktail', price:12, stock:99, alert:1, emoji:'🎖️' },
+      { name:'Seelbach', category:'cocktail', price:15, stock:99, alert:1, emoji:'🥂' },
+      { name:'Lions Tail', category:'cocktail', price:13, stock:99, alert:1, emoji:'🦁' },
+
+      // ═══ BOURBON FLIGHTS ═══
+      { name:'Kentucky Classics', category:'flight', price:22, stock:99, alert:1, emoji:'🏇', desc:'Buffalo Trace, Makers, Woodford' },
+      { name:'Buffalo Trace Family', category:'flight', price:28, stock:99, alert:1, emoji:'🦬', desc:'BT, Eagle Rare, EH Taylor' },
+      { name:'Weller Journey', category:'flight', price:45, stock:99, alert:1, emoji:'🌟', desc:'SR, Antique 107, Weller 12' },
+      { name:'Premium Explorer', category:'flight', price:38, stock:99, alert:1, emoji:'🧭', desc:'Blantons, Angels Envy, 4R SiB' },
+      { name:'Age Statement', category:'flight', price:35, stock:99, alert:1, emoji:'📅', desc:'10yr, 12yr, 15yr selections' },
+      { name:'Barrel Proof', category:'flight', price:42, stock:99, alert:1, emoji:'🔥', desc:'ECBP, Bookers, Rare Breed' },
+
+      // ═══ WELL BOURBONS ($8-10) ═══
+      { name:'Evan Williams Black', category:'well', price:8, stock:20, alert:4, emoji:'🥃' },
+      { name:'Jim Beam White', category:'well', price:8, stock:20, alert:4, emoji:'🥃' },
+      { name:'Old Crow', category:'well', price:7, stock:15, alert:3, emoji:'🥃' },
+      { name:'Early Times', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
+      { name:'Ancient Age', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
+      { name:'Benchmark', category:'well', price:8, stock:15, alert:3, emoji:'🥃' },
+
+      // ═══ CALL BOURBONS ($10-14) ═══
+      { name:'Buffalo Trace', category:'call', price:10, stock:12, alert:3, emoji:'🦬' },
+      { name:'Makers Mark', category:'call', price:11, stock:12, alert:3, emoji:'🔴' },
+      { name:'Wild Turkey 101', category:'call', price:10, stock:12, alert:3, emoji:'🦃' },
+      { name:'Four Roses Yellow', category:'call', price:10, stock:10, alert:2, emoji:'🌹' },
+      { name:'Woodford Reserve', category:'call', price:12, stock:10, alert:2, emoji:'🏇' },
+      { name:'Knob Creek 9yr', category:'call', price:12, stock:10, alert:2, emoji:'🪵' },
+      { name:'Bulleit Bourbon', category:'call', price:11, stock:10, alert:2, emoji:'🎯' },
+      { name:'Elijah Craig SB', category:'call', price:11, stock:10, alert:2, emoji:'⛪' },
+      { name:'1792 Small Batch', category:'call', price:11, stock:8, alert:2, emoji:'🥃' },
+      { name:'Larceny', category:'call', price:10, stock:10, alert:2, emoji:'🔓' },
+      { name:'Old Forester 86', category:'call', price:10, stock:10, alert:2, emoji:'🌳' },
+      { name:'Wild Turkey Rare Breed', category:'call', price:14, stock:8, alert:2, emoji:'🦃' },
+
+      // ═══ PREMIUM BOURBONS ($14-25) ═══
+      { name:'Angels Envy', category:'premium', price:16, stock:6, alert:2, emoji:'😇' },
+      { name:'Basil Haydens', category:'premium', price:15, stock:6, alert:2, emoji:'🌿' },
+      { name:'Jeffersons Reserve', category:'premium', price:16, stock:5, alert:2, emoji:'📜' },
+      { name:'Old Forester 1910', category:'premium', price:18, stock:5, alert:2, emoji:'🏛️' },
+      { name:'Old Forester 1920', category:'premium', price:20, stock:5, alert:2, emoji:'🎭' },
+      { name:'Russells Reserve 10yr', category:'premium', price:16, stock:6, alert:2, emoji:'🦃' },
+      { name:'Elijah Craig BP', category:'premium', price:22, stock:4, alert:1, emoji:'🔥' },
+      { name:'Bookers', category:'premium', price:25, stock:4, alert:1, emoji:'📕' },
+      { name:'Bakers 7yr', category:'premium', price:18, stock:5, alert:2, emoji:'🥧' },
+      { name:'Henry McKenna 10yr BiB', category:'premium', price:18, stock:4, alert:1, emoji:'🏆' },
+      { name:'Four Roses SiB', category:'premium', price:16, stock:6, alert:2, emoji:'🌹' },
+      { name:'Knob Creek 12yr', category:'premium', price:18, stock:5, alert:2, emoji:'🪵' },
+      { name:'Wilderness Trail', category:'premium', price:18, stock:4, alert:1, emoji:'🥾' },
+      { name:'New Riff SiB', category:'premium', price:17, stock:5, alert:2, emoji:'🎸' },
+
+      // ═══ TOP SHELF / ALLOCATED ($25-75) ═══
+      { name:'Blantons', category:'topshelf', price:28, stock:3, alert:1, emoji:'🐴' },
+      { name:'Eagle Rare 10yr', category:'topshelf', price:18, stock:4, alert:1, emoji:'🦅' },
+      { name:'Weller Special Reserve', category:'topshelf', price:18, stock:3, alert:1, emoji:'🌾' },
+      { name:'Weller Antique 107', category:'topshelf', price:28, stock:2, alert:1, emoji:'🌾' },
+      { name:'Weller 12yr', category:'topshelf', price:45, stock:2, alert:1, emoji:'🌾' },
+      { name:'EH Taylor Small Batch', category:'topshelf', price:32, stock:2, alert:1, emoji:'🎖️' },
+      { name:'EH Taylor SiB', category:'topshelf', price:48, stock:1, alert:1, emoji:'🎖️' },
+      { name:'Elijah Craig 18yr', category:'topshelf', price:55, stock:2, alert:1, emoji:'⛪' },
+      { name:'Four Roses LE SmB', category:'topshelf', price:50, stock:2, alert:1, emoji:'🌹' },
+      { name:'Michters 10yr', category:'topshelf', price:45, stock:2, alert:1, emoji:'🥃' },
+      { name:'Rabbit Hole Dareringer', category:'topshelf', price:35, stock:3, alert:1, emoji:'🐰' },
+      { name:'Kentucky Owl', category:'topshelf', price:60, stock:2, alert:1, emoji:'🦉' },
+
+      // ═══ RARE / VINTAGE ($75-400+) ═══
+      { name:'Pappy 10yr', category:'rare', price:85, stock:1, alert:1, emoji:'👴' },
+      { name:'Pappy 12yr Lot B', category:'rare', price:125, stock:1, alert:1, emoji:'👴' },
+      { name:'Pappy 15yr', category:'rare', price:175, stock:1, alert:1, emoji:'👴' },
+      { name:'Pappy 20yr', category:'rare', price:275, stock:1, alert:1, emoji:'👴' },
+      { name:'Pappy 23yr', category:'rare', price:375, stock:1, alert:1, emoji:'👴' },
+      { name:'Old Rip Van Winkle 10yr', category:'rare', price:85, stock:1, alert:1, emoji:'😴' },
+      { name:'Van Winkle 12yr', category:'rare', price:110, stock:1, alert:1, emoji:'😴' },
+      { name:'George T Stagg', category:'rare', price:95, stock:1, alert:1, emoji:'🦌' },
+      { name:'William Larue Weller', category:'rare', price:95, stock:1, alert:1, emoji:'🌾' },
+      { name:'Thomas H Handy', category:'rare', price:75, stock:1, alert:1, emoji:'✒️' },
+      { name:'BTAC Sazerac 18yr', category:'rare', price:125, stock:1, alert:1, emoji:'⚜️' },
+      { name:'Double Eagle Very Rare', category:'rare', price:350, stock:1, alert:1, emoji:'🦅' },
+      { name:'Willett Family 8yr', category:'rare', price:85, stock:1, alert:1, emoji:'🏚️' },
+
+      // ═══ BEER ═══
+      { name:'Bud Light', category:'beer', price:4, stock:48, alert:10, emoji:'🍺' },
+      { name:'Budweiser', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
+      { name:'Miller Lite', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
+      { name:'Coors Light', category:'beer', price:4, stock:36, alert:8, emoji:'🍺' },
+      { name:'Stella Artois', category:'beer', price:6, stock:24, alert:6, emoji:'⭐' },
+      { name:'Blue Moon', category:'beer', price:6, stock:24, alert:6, emoji:'🌙' },
+      { name:'Local IPA', category:'beer', price:7, stock:18, alert:4, emoji:'🍻' },
+      { name:'KY Bourbon Barrel Ale', category:'beer', price:8, stock:12, alert:3, emoji:'🛢️' },
+      { name:'Guinness', category:'beer', price:7, stock:18, alert:4, emoji:'🖤' },
+
+      // ═══ WINE ═══
+      { name:'House Cab', category:'wine', price:9, stock:12, alert:3, emoji:'🍷' },
+      { name:'House Chardonnay', category:'wine', price:9, stock:12, alert:3, emoji:'🥂' },
+      { name:'House Pinot Grigio', category:'wine', price:9, stock:12, alert:3, emoji:'🍾' },
+      { name:'Prosecco Glass', category:'wine', price:10, stock:10, alert:2, emoji:'🥂' },
+      { name:'Champagne Glass', category:'wine', price:14, stock:8, alert:2, emoji:'🍾' },
+
+      // ═══ SNACKS ═══
+      { name:'Bourbon Pecans', category:'snacks', price:8, stock:20, alert:4, emoji:'🥜' },
+      { name:'Charcuterie Board', category:'snacks', price:22, stock:10, alert:2, emoji:'🧀' },
+      { name:'Pretzel Bites', category:'snacks', price:8, stock:25, alert:5, emoji:'🥨' },
+      { name:'Bourbon Balls', category:'snacks', price:6, stock:30, alert:6, emoji:'🍫' },
+      { name:'Mixed Nuts', category:'snacks', price:6, stock:25, alert:5, emoji:'🥜' },
+      { name:'Cheese Plate', category:'snacks', price:16, stock:10, alert:2, emoji:'🧀' },
+
+      // ═══ MERCH ═══
+      { name:'Bunghole T-Shirt', category:'merch', price:28, stock:20, alert:4, emoji:'👕' },
+      { name:'Bunghole Hat', category:'merch', price:24, stock:15, alert:3, emoji:'🧢' },
+      { name:'Glencairn Glass', category:'merch', price:12, stock:25, alert:5, emoji:'🥃' },
+      { name:'Bourbon Manor Glass', category:'merch', price:18, stock:20, alert:4, emoji:'🥃' },
+      { name:'Bottle Opener', category:'merch', price:8, stock:30, alert:6, emoji:'🔑' },
+      { name:'Tasting Journal', category:'merch', price:15, stock:15, alert:3, emoji:'📓' },
+
+      // ═══ NON-ALCOHOLIC ═══
+      { name:'Coke', category:'nonalc', price:3, stock:48, alert:10, emoji:'🥤' },
+      { name:'Diet Coke', category:'nonalc', price:3, stock:36, alert:8, emoji:'🥤' },
+      { name:'Sprite', category:'nonalc', price:3, stock:36, alert:8, emoji:'🥤' },
+      { name:'Ginger Ale', category:'nonalc', price:3, stock:36, alert:8, emoji:'🫚' },
+      { name:'Club Soda', category:'nonalc', price:2, stock:48, alert:10, emoji:'💧' },
+      { name:'Tonic', category:'nonalc', price:3, stock:36, alert:8, emoji:'💧' },
+      { name:'Water', category:'nonalc', price:2, stock:60, alert:12, emoji:'💧' },
+      { name:'Coffee', category:'nonalc', price:4, stock:99, alert:1, emoji:'☕' },
+      { name:'Espresso', category:'nonalc', price:4, stock:99, alert:1, emoji:'☕' },
+      { name:'Seedlip Mocktail', category:'nonalc', price:10, stock:20, alert:4, emoji:'🌱' },
+
+      // ═══ MIXERS / ADD-ONS ═══
+      { name:'Luxardo Cherry', category:'mixer', price:2, stock:50, alert:10, emoji:'🍒' },
+      { name:'Orange Peel', category:'mixer', price:1, stock:99, alert:1, emoji:'🍊' },
+      { name:'Angostura Bitters', category:'mixer', price:1, stock:99, alert:1, emoji:'🧪' },
+      { name:'Simple Syrup', category:'mixer', price:1, stock:99, alert:1, emoji:'🍯' },
+      { name:'Fresh Mint', category:'mixer', price:1, stock:99, alert:1, emoji:'🌿' },
+      { name:'Ginger Beer', category:'mixer', price:4, stock:36, alert:8, emoji:'🫚' },
+      { name:'Extra Ice', category:'mixer', price:0, stock:99, alert:1, emoji:'🧊' }
     ];
-    seeds.forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false, emoji: null }));
+    seeds.forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false }));
     saveDB();
   },
 
@@ -1234,21 +1367,43 @@ const POS = {
       return;
     }
     if (p.eightySixed || p.stock <= 0) { toast('Unavailable', 'error'); return; }
-    if (p.category === 'bourbon') {
+
+    // Bourbon categories get pour size modifiers
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare'];
+    if (bourbonCats.includes(p.category)) {
       pendingModProduct = p;
-      selectedMod = { label: 'Neat', extra: 0 };
+      selectedMod = { label: 'Neat (2oz)', extra: 0 };
       document.getElementById('modTitle').textContent = p.name;
       const mods = [
-        { label: 'Neat', extra: 0, note: 'Standard' },
-        { label: 'Rocks', extra: 0, note: 'Over ice' },
-        { label: 'Double', extra: 2, note: '+$2' },
-        { label: 'Single Barrel', extra: 3, note: '+$3' }
+        { label: 'Shot (1.5oz)', extra: -2, note: '-$2' },
+        { label: 'Neat (2oz)', extra: 0, note: 'Standard' },
+        { label: 'Rocks (2oz)', extra: 0, note: 'Over ice' },
+        { label: 'Tasting (1oz)', extra: -4, note: '-$4' },
+        { label: 'Double (4oz)', extra: p.price * 0.8, note: `+$${(p.price * 0.8).toFixed(0)}` }
+      ];
+      document.getElementById('modGrid').innerHTML = mods.map((m, i) =>
+        `<button class="mod-btn ${i === 1 ? 'selected' : ''}" onclick="POS.pickMod(this,'${m.label}',${m.extra})">${m.label}<small>${m.note}</small></button>`
+      ).join('');
+      Modal.open('modalMod');
+    }
+    // Cocktails get bourbon upgrade options
+    else if (p.category === 'cocktail') {
+      pendingModProduct = p;
+      selectedMod = { label: 'Well', extra: 0 };
+      document.getElementById('modTitle').textContent = p.name;
+      const mods = [
+        { label: 'Well', extra: 0, note: 'Standard' },
+        { label: 'Call (+$3)', extra: 3, note: 'Buffalo Trace, Makers' },
+        { label: 'Premium (+$6)', extra: 6, note: 'Angels Envy, Woodford' },
+        { label: 'Top Shelf (+$12)', extra: 12, note: 'Blantons, Weller' },
+        { label: 'Rare (+$25)', extra: 25, note: 'Pappy, BTAC' }
       ];
       document.getElementById('modGrid').innerHTML = mods.map((m, i) =>
         `<button class="mod-btn ${i === 0 ? 'selected' : ''}" onclick="POS.pickMod(this,'${m.label}',${m.extra})">${m.label}<small>${m.note}</small></button>`
       ).join('');
       Modal.open('modalMod');
-    } else {
+    }
+    else {
       Cart.add(p, null, 0);
     }
   },
