@@ -513,6 +513,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 .toast.error { background: var(--danger); }
 .toast.show { transform: translateX(0); }
 
+/* ═══════════════════════════════════════════
+   TABLET (< 900px)
+   ═══════════════════════════════════════════ */
 @media (max-width: 900px) {
   .sidebar-col {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -523,6 +526,121 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
   .main-col { height: 58vh; }
   .products-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ═══════════════════════════════════════════
+   MOBILE PHONE (< 600px)
+   ═══════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .header { padding: 8px 12px; }
+  .header-brand h1 { font-size: 14px; }
+  .header-brand span { display: none; }
+  .header-actions { gap: 4px; }
+  .hdr-btn { padding: 6px 10px; font-size: 11px; }
+  .employee-badge { padding: 4px 8px; font-size: 10px; }
+  .clock { font-size: 11px; min-width: 60px; }
+
+  .nav-tabs { padding: 0 4px; }
+  .nav-tab { padding: 10px 8px; font-size: 10px; }
+  .nav-tab .lock-icon { display: none; }
+
+  .sidebar-col { height: 50vh; }
+  .main-col { height: 50vh; }
+
+  .view { padding: 10px; }
+  .toolbar { gap: 6px; margin-bottom: 10px; }
+  .toolbar-btn { padding: 6px 10px; font-size: 10px; }
+  .search-wrap input { font-size: 13px; padding: 8px 12px 8px 32px; }
+  .search-icon { left: 10px; font-size: 12px; }
+
+  .cat-bar { gap: 4px; margin-bottom: 10px; }
+  .cat-chip { padding: 6px 12px; font-size: 11px; }
+
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .product-card { padding: 10px 6px 8px; }
+  .prod-emoji { font-size: 22px; margin-bottom: 4px; }
+  .prod-name { font-size: 10px; }
+  .prod-meta { font-size: 9px; }
+  .prod-price { font-size: 13px; }
+
+  .cart-head { padding: 10px 14px; }
+  .cart-head h2 { font-size: 15px; }
+  .cart-body { padding: 8px 10px; }
+  .cart-item { padding: 10px; }
+  .ci-name { font-size: 12px; }
+  .ci-price { font-size: 13px; }
+  .qty-btn { width: 24px; height: 24px; font-size: 14px; }
+
+  .cart-footer { padding: 10px; }
+  .totals-row { font-size: 12px; }
+  .totals-row.grand { font-size: 18px; }
+  .checkout-btns { gap: 6px; }
+  .btn-checkout { padding: 12px; font-size: 12px; }
+
+  .modal-box { max-width: calc(100vw - 20px); }
+  .modal-head { padding: 12px 16px; }
+  .modal-head h2 { font-size: 16px; }
+  .modal-body { padding: 14px; }
+
+  .pin-pad { grid-template-columns: repeat(3, 60px); gap: 8px; }
+  .pin-key { width: 60px; height: 60px; font-size: 20px; }
+  .lock-brand h1 { font-size: 28px; }
+
+  .data-table th, .data-table td { padding: 6px 8px; font-size: 10px; }
+  .btn-sm { padding: 4px 6px; font-size: 9px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kpi-val { font-size: 18px; }
+
+  .view-title { font-size: 18px; }
+  .filter-row { gap: 6px; }
+  .filter-row select { min-width: 100px; font-size: 12px; }
+}
+
+/* ═══════════════════════════════════════════
+   PRINT RECEIPT STYLES
+   ═══════════════════════════════════════════ */
+@media print {
+  * { visibility: hidden; }
+  .receipt-print, .receipt-print * { visibility: visible; }
+  .receipt-print {
+    position: absolute;
+    left: 0; top: 0;
+    width: 80mm; /* Thermal receipt width */
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    padding: 8px;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
+.receipt-print {
+  display: none;
+  width: 80mm;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #000;
+  background: #fff;
+  padding: 12px;
+}
+.receipt-header { text-align: center; margin-bottom: 12px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
+.receipt-header h2 { font-size: 16px; margin: 0 0 4px; }
+.receipt-header p { margin: 2px 0; font-size: 10px; }
+.receipt-items { margin-bottom: 8px; }
+.receipt-item { display: flex; justify-content: space-between; margin: 4px 0; }
+.receipt-item .name { flex: 1; }
+.receipt-item .qty { width: 30px; text-align: center; }
+.receipt-item .price { width: 50px; text-align: right; }
+.receipt-mod { font-size: 10px; color: #666; margin-left: 12px; }
+.receipt-totals { border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px; }
+.receipt-totals .row { display: flex; justify-content: space-between; margin: 3px 0; }
+.receipt-totals .grand { font-weight: bold; font-size: 14px; margin-top: 6px; }
+.receipt-footer { text-align: center; margin-top: 12px; border-top: 1px dashed #000; padding-top: 8px; font-size: 10px; }
+.receipt-barcode { text-align: center; margin-top: 8px; font-size: 8px; letter-spacing: 2px; }
 </style>
 </head>
 <body>
@@ -876,6 +994,26 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
     </div>
   </div>
 </div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="modalReceipt">
+  <div class="modal-box" style="max-width:340px;">
+    <div class="modal-head"><h2>🧾 Receipt</h2><button class="modal-close" onclick="Modal.close('modalReceipt')">&times;</button></div>
+    <div class="modal-body" style="text-align:center;">
+      <div style="background:#fff;color:#000;padding:16px;border-radius:var(--radius-sm);margin-bottom:12px;" id="receiptPreview">
+        <!-- Receipt preview rendered here -->
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-gold btn-full" onclick="Receipt.print()" style="padding:14px;">🖨️ Print Receipt</button>
+        <button class="btn-sm btn-full" onclick="Receipt.email()" style="padding:14px;">📧 Email</button>
+      </div>
+      <button class="btn-sm btn-full" onclick="Modal.close('modalReceipt')" style="padding:10px;margin-top:8px;color:var(--text-muted);">Skip / Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN RECEIPT FOR PRINT -->
+<div class="receipt-print" id="receiptPrint"></div>
 
 <div class="toast" id="toast"></div>
 
@@ -1655,10 +1793,119 @@ const Cart = {
     logAudit('sale', `${type === 'room' ? 'Room ' + room?.name : type} sale: $${tx.total.toFixed(2)}`);
     saveDB();
     toast(type === 'room' ? `Posted to ${room?.name}` : 'Payment recorded');
+    // Store last transaction for receipt
+    lastTransaction = tx;
     cart = [];
     tipAmount = 0;
     Cart.render();
     POS.render();
+    // Show receipt option (skip for room charges)
+    if (type !== 'room') {
+      Receipt.show(tx);
+    }
+  }
+};
+
+/* ═══════════════════════════════════════════
+   RECEIPT PRINTING
+   ═══════════════════════════════════════════ */
+let lastTransaction = null;
+
+const Receipt = {
+  show(tx) {
+    const time = new Date(tx.timestamp);
+    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Build receipt preview HTML
+    let itemsHtml = tx.items.map(item => {
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      return html;
+    }).join('');
+
+    const receiptHtml = `
+      <div class="receipt-header">
+        <h2>The Bunghole</h2>
+        <p>Bourbon Lounge</p>
+        <p>BourbonManor.com • Bardstown, KY</p>
+        <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
+      </div>
+      <div class="receipt-items">${itemsHtml}</div>
+      <div class="receipt-totals">
+        <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
+        <div class="row"><span>Tax (${db.settings.taxRate}%):</span><span>$${tx.tax.toFixed(2)}</span></div>
+        ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
+        <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
+      </div>
+      <div class="receipt-footer">
+        <p>Thank you for visiting!</p>
+        <p>🥃 Cheers! 🥃</p>
+      </div>
+      <div class="receipt-barcode">${tx.id}</div>
+    `;
+
+    document.getElementById('receiptPreview').innerHTML = receiptHtml;
+    Modal.open('modalReceipt');
+  },
+
+  print() {
+    if (!lastTransaction) return;
+    const tx = lastTransaction;
+    const time = new Date(tx.timestamp);
+    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    let itemsHtml = tx.items.map(item => {
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      return html;
+    }).join('');
+
+    const printHtml = `
+      <div class="receipt-header">
+        <h2>The Bunghole</h2>
+        <p>Bourbon Lounge</p>
+        <p>BourbonManor.com</p>
+        <p>Bardstown, KY</p>
+        <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
+        <p>Server: ${tx.employee}</p>
+      </div>
+      <div class="receipt-items">${itemsHtml}</div>
+      <div class="receipt-totals">
+        <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
+        <div class="row"><span>Tax (${db.settings.taxRate}%):</span><span>$${tx.tax.toFixed(2)}</span></div>
+        ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
+        <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
+        <div class="row" style="margin-top:8px;"><span>Payment:</span><span>${tx.type === 'card' ? 'Card' : 'Cash'}</span></div>
+      </div>
+      <div class="receipt-footer">
+        <p>Thank you for visiting!</p>
+        <p>🥃 Cheers! 🥃</p>
+        <p style="margin-top:8px;font-size:9px;">BourbonManor.com</p>
+      </div>
+      <div class="receipt-barcode">${tx.id}</div>
+    `;
+
+    const printEl = document.getElementById('receiptPrint');
+    printEl.innerHTML = printHtml;
+    printEl.style.display = 'block';
+
+    setTimeout(() => {
+      window.print();
+      printEl.style.display = 'none';
+    }, 100);
+  },
+
+  email() {
+    // For now, just show a message
+    const email = prompt('Enter email address for receipt:');
+    if (email && email.includes('@')) {
+      toast(`Receipt would be sent to ${email}`);
+      Modal.close('modalReceipt');
+    } else if (email) {
+      toast('Invalid email', 'error');
+    }
   }
 };
 
