@@ -1003,11 +1003,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <div style="background:#fff;color:#000;padding:16px;border-radius:var(--radius-sm);margin-bottom:12px;" id="receiptPreview">
         <!-- Receipt preview rendered here -->
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-sm btn-gold btn-full" onclick="Receipt.print()" style="padding:14px;">🖨️ Print Receipt</button>
-        <button class="btn-sm btn-full" onclick="Receipt.email()" style="padding:14px;">📧 Email</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-sm btn-full" onclick="Receipt.share()" style="padding:14px;flex:1;min-width:45%;background:var(--blue);border-color:var(--blue);color:white;">📱 Text / Share</button>
+        <button class="btn-sm btn-full" onclick="Receipt.email()" style="padding:14px;flex:1;min-width:45%;">📧 Email</button>
       </div>
-      <button class="btn-sm btn-full" onclick="Modal.close('modalReceipt')" style="padding:10px;margin-top:8px;color:var(--text-muted);">Skip / Close</button>
+      <button class="btn-sm btn-gold btn-full" onclick="Receipt.print()" style="padding:12px;margin-top:8px;">🖨️ Print Receipt</button>
+      <button class="btn-sm btn-full" onclick="Modal.close('modalReceipt')" style="padding:10px;margin-top:8px;color:var(--text-muted);">No Receipt Needed</button>
     </div>
   </div>
 </div>
@@ -1897,15 +1898,100 @@ const Receipt = {
     }, 100);
   },
 
-  email() {
-    // For now, just show a message
-    const email = prompt('Enter email address for receipt:');
-    if (email && email.includes('@')) {
-      toast(`Receipt would be sent to ${email}`);
-      Modal.close('modalReceipt');
-    } else if (email) {
-      toast('Invalid email', 'error');
+  // Generate plain text receipt for sharing
+  getTextReceipt() {
+    if (!lastTransaction) return '';
+    const tx = lastTransaction;
+    const time = new Date(tx.timestamp);
+    const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    let text = `🥃 THE BUNGHOLE\nBourbon Lounge\nBourbonManor.com\nBardstown, KY\n`;
+    text += `────────────────\n`;
+    text += `${dateStr} ${timeStr}\n`;
+    text += `────────────────\n\n`;
+
+    tx.items.forEach(item => {
+      const itemTotal = ((item.basePrice + item.extra) * item.qty).toFixed(2);
+      text += `${item.qty}x ${item.name}\n`;
+      if (item.mod) text += `   ↳ ${item.mod}\n`;
+      text += `   $${itemTotal}\n`;
+    });
+
+    text += `\n────────────────\n`;
+    text += `Subtotal: $${tx.subtotal.toFixed(2)}\n`;
+    text += `Tax (${db.settings.taxRate}%): $${tx.tax.toFixed(2)}\n`;
+    if (tx.tip > 0) text += `Tip: $${tx.tip.toFixed(2)}\n`;
+    text += `────────────────\n`;
+    text += `TOTAL: $${tx.total.toFixed(2)}\n`;
+    text += `Payment: ${tx.type === 'card' ? 'Card' : 'Cash'}\n`;
+    text += `────────────────\n\n`;
+    text += `Thank you for visiting!\n🥃 Cheers! 🥃\n\n`;
+    text += `Receipt #${tx.id}`;
+
+    return text;
+  },
+
+  // Share via native share sheet (iMessage, AirDrop, etc.)
+  share() {
+    const text = Receipt.getTextReceipt();
+    if (!text) {
+      toast('No receipt to share', 'error');
+      return;
     }
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Receipt - The Bunghole',
+        text: text
+      }).then(() => {
+        toast('Receipt shared!');
+        Modal.close('modalReceipt');
+      }).catch(err => {
+        // User cancelled or error
+        if (err.name !== 'AbortError') {
+          Receipt.copyToClipboard(text);
+        }
+      });
+    } else {
+      // Fallback: copy to clipboard
+      Receipt.copyToClipboard(text);
+    }
+  },
+
+  copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      toast('Receipt copied! Paste in Messages or anywhere');
+      Modal.close('modalReceipt');
+    }).catch(() => {
+      toast('Could not copy receipt', 'error');
+    });
+  },
+
+  // Email via mailto link (opens email app)
+  email() {
+    const text = Receipt.getTextReceipt();
+    if (!text) {
+      toast('No receipt to email', 'error');
+      return;
+    }
+
+    const email = prompt('Enter email address:');
+    if (!email) return;
+
+    if (!email.includes('@')) {
+      toast('Invalid email address', 'error');
+      return;
+    }
+
+    const subject = encodeURIComponent('Your Receipt - The Bunghole Bourbon Lounge');
+    const body = encodeURIComponent(text);
+
+    // Open default email app with receipt
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+
+    toast('Opening email app...');
+    Modal.close('modalReceipt');
   }
 };
 
