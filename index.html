@@ -824,8 +824,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
           <input type="text" id="setName" value="The Bunghole Bourbon Lounge">
         </div>
         <div class="form-row">
-          <label class="form-label">Tax Rate (%)</label>
+          <label class="form-label">Sales Tax Rate (%)</label>
           <input type="number" id="setTax" value="6" step="0.01">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Bourbon Tax Rate (%)</label>
+          <input type="number" id="setBourbonTax" value="7.5" step="0.01">
+          <small style="color:var(--text-muted);font-size:11px;margin-top:4px;">Applied to bourbon, cocktails, and flights only</small>
         </div>
       </div>
 
@@ -862,7 +867,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
     </div>
     <div class="cart-footer">
       <div class="totals-row"><span>Subtotal</span><span id="cartSub">$0.00</span></div>
-      <div class="totals-row"><span>Tax</span><span id="cartTax">$0.00</span></div>
+      <div class="totals-row"><span>Sales Tax</span><span id="cartSalesTax">$0.00</span></div>
+      <div class="totals-row" id="bourbonTaxRow" style="display:none;"><span>Bourbon Tax</span><span id="cartBourbonTax">$0.00</span></div>
       <div class="totals-row grand"><span>Total</span><span id="cartTotal">$0.00</span></div>
       <div class="checkout-btns">
         <button class="btn-checkout" id="btnCard" onclick="Cart.openCheckout('card')" disabled>💳 Card</button>
@@ -1055,6 +1061,7 @@ let db = {
     { id:'wine', name:'Wine', icon:'🍷' },
     { id:'snacks', name:'Snacks', icon:'🥨' },
     { id:'merch', name:'Merch', icon:'👕' },
+    { id:'giftshop', name:'Gift Shop', icon:'🎁' },
     { id:'nonalc', name:'Non-Alc', icon:'🥤' },
     { id:'mixer', name:'Mixers', icon:'🧊' }
   ],
@@ -1063,7 +1070,7 @@ let db = {
   roomCharges: [],
   voidedSales: [],
   auditLog: [],
-  settings: { taxRate: 6, name: 'The Bunghole Bourbon Lounge' }
+  settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' }
 };
 
 function loadDB() {
@@ -1180,6 +1187,7 @@ const App = {
     POS.render();
     App.startClock();
     document.getElementById('setTax').value = db.settings.taxRate;
+    document.getElementById('setBourbonTax').value = db.settings.bourbonTaxRate || 7.5;
     document.getElementById('setName').value = db.settings.name;
   },
 
@@ -1320,6 +1328,18 @@ const App = {
       { name:'Bourbon Manor Glass', category:'merch', price:18, stock:20, alert:4, emoji:'🥃' },
       { name:'Bottle Opener', category:'merch', price:8, stock:30, alert:6, emoji:'🔑' },
       { name:'Tasting Journal', category:'merch', price:15, stock:15, alert:3, emoji:'📓' },
+
+      // ═══ GIFT SHOP ═══
+      { name:'Bourbon Gift Box', category:'giftshop', price:45, stock:10, alert:2, emoji:'🎁' },
+      { name:'Bourbon Chocolates', category:'giftshop', price:18, stock:20, alert:4, emoji:'🍫' },
+      { name:'KY Bourbon Candle', category:'giftshop', price:24, stock:15, alert:3, emoji:'🕯️' },
+      { name:'Bourbon Barrel Coasters', category:'giftshop', price:16, stock:20, alert:4, emoji:'🪵' },
+      { name:'Bourbon Recipe Book', category:'giftshop', price:22, stock:12, alert:3, emoji:'📖' },
+      { name:'Bourbon Soap Set', category:'giftshop', price:14, stock:18, alert:4, emoji:'🧼' },
+      { name:'KY Bourbon Trail Map', category:'giftshop', price:8, stock:25, alert:5, emoji:'🗺️' },
+      { name:'Bourbon BBQ Sauce', category:'giftshop', price:12, stock:20, alert:4, emoji:'🍖' },
+      { name:'Bourbon Honey', category:'giftshop', price:15, stock:15, alert:3, emoji:'🍯' },
+      { name:'Bardstown Postcard Pack', category:'giftshop', price:6, stock:30, alert:6, emoji:'📮' },
 
       // ═══ NON-ALCOHOLIC ═══
       { name:'Coke', category:'nonalc', price:3, stock:48, alert:10, emoji:'🥤' },
@@ -1683,17 +1703,33 @@ const Cart = {
 
   totals() {
     const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
-    const tax = sub * (db.settings.taxRate / 100);
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+    const bourbonSub = cart.reduce((s, c) => {
+      const p = db.products.find(x => x.id === c.pid);
+      return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+    }, 0);
+    const salesTax = sub * (db.settings.taxRate / 100);
+    const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
+    const totalTax = salesTax + bourbonTax;
     document.getElementById('cartSub').textContent = '$' + sub.toFixed(2);
-    document.getElementById('cartTax').textContent = '$' + tax.toFixed(2);
-    document.getElementById('cartTotal').textContent = '$' + (sub + tax).toFixed(2);
+    document.getElementById('cartSalesTax').textContent = '$' + salesTax.toFixed(2);
+    document.getElementById('cartBourbonTax').textContent = '$' + bourbonTax.toFixed(2);
+    document.getElementById('bourbonTaxRow').style.display = bourbonTax > 0 ? 'flex' : 'none';
+    document.getElementById('cartTotal').textContent = '$' + (sub + totalTax).toFixed(2);
     document.getElementById('btnCard').disabled = !cart.length;
     document.getElementById('btnCash').disabled = !cart.length;
   },
 
   getSubtotalPlusTax() {
     const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
-    return sub + sub * (db.settings.taxRate / 100);
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+    const bourbonSub = cart.reduce((s, c) => {
+      const p = db.products.find(x => x.id === c.pid);
+      return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+    }, 0);
+    const salesTax = sub * (db.settings.taxRate / 100);
+    const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
+    return sub + salesTax + bourbonTax;
   },
 
   openCheckout(type) {
@@ -1775,7 +1811,15 @@ const Cart = {
       if (p) p.stock = Math.max(0, p.stock - c.qty);
     });
     const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
-    const tax = sub * (db.settings.taxRate / 100);
+    // Calculate bourbon tax (only on liquor items)
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+    const bourbonSub = cart.reduce((s, c) => {
+      const p = db.products.find(x => x.id === c.pid);
+      return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+    }, 0);
+    const salesTax = sub * (db.settings.taxRate / 100);
+    const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
+    const tax = salesTax + bourbonTax;
     const room = ROOMS.find(r => r.id === roomId);
     const tx = {
       id: uid(),
@@ -1785,7 +1829,7 @@ const Cart = {
       employee: currentEmployee?.name || 'Unknown',
       employeeId: currentEmployee?.id || null,
       items: cart.map(c => ({ ...c })),
-      subtotal: sub, tax, tip: tip || 0, total: sub + tax + (tip || 0),
+      subtotal: sub, tax, salesTax, bourbonTax, tip: tip || 0, total: sub + tax + (tip || 0),
       timestamp: new Date().toISOString(),
       date: new Date().toDateString()
     };
@@ -1836,7 +1880,8 @@ const Receipt = {
       <div class="receipt-items">${itemsHtml}</div>
       <div class="receipt-totals">
         <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
-        <div class="row"><span>Tax (${db.settings.taxRate}%):</span><span>$${tx.tax.toFixed(2)}</span></div>
+        <div class="row"><span>Sales Tax (${db.settings.taxRate}%):</span><span>$${(tx.salesTax || tx.tax).toFixed(2)}</span></div>
+        ${tx.bourbonTax > 0 ? `<div class="row"><span>Bourbon Tax (${db.settings.bourbonTaxRate}%):</span><span>$${tx.bourbonTax.toFixed(2)}</span></div>` : ''}
         ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
         <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
       </div>
@@ -1876,7 +1921,8 @@ const Receipt = {
       <div class="receipt-items">${itemsHtml}</div>
       <div class="receipt-totals">
         <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
-        <div class="row"><span>Tax (${db.settings.taxRate}%):</span><span>$${tx.tax.toFixed(2)}</span></div>
+        <div class="row"><span>Sales Tax (${db.settings.taxRate}%):</span><span>$${(tx.salesTax || tx.tax).toFixed(2)}</span></div>
+        ${tx.bourbonTax > 0 ? `<div class="row"><span>Bourbon Tax (${db.settings.bourbonTaxRate}%):</span><span>$${tx.bourbonTax.toFixed(2)}</span></div>` : ''}
         ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
         <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
         <div class="row" style="margin-top:8px;"><span>Payment:</span><span>${tx.type === 'card' ? 'Card' : 'Cash'}</span></div>
@@ -1922,7 +1968,8 @@ const Receipt = {
 
     text += `\n────────────────\n`;
     text += `Subtotal: $${tx.subtotal.toFixed(2)}\n`;
-    text += `Tax (${db.settings.taxRate}%): $${tx.tax.toFixed(2)}\n`;
+    text += `Sales Tax (${db.settings.taxRate}%): $${(tx.salesTax || tx.tax).toFixed(2)}\n`;
+    if (tx.bourbonTax > 0) text += `Bourbon Tax (${db.settings.bourbonTaxRate}%): $${tx.bourbonTax.toFixed(2)}\n`;
     if (tx.tip > 0) text += `Tip: $${tx.tip.toFixed(2)}\n`;
     text += `────────────────\n`;
     text += `TOTAL: $${tx.total.toFixed(2)}\n`;
@@ -2275,10 +2322,13 @@ const Voids = {
 const Settings = {
   save() {
     const oldTax = db.settings.taxRate;
+    const oldBourbonTax = db.settings.bourbonTaxRate || 0;
     db.settings.taxRate = parseFloat(document.getElementById('setTax').value) || 6;
+    db.settings.bourbonTaxRate = parseFloat(document.getElementById('setBourbonTax').value) || 0;
     db.settings.name = document.getElementById('setName').value;
     saveDB();
-    if (oldTax !== db.settings.taxRate) logAudit('settings', `Tax rate: ${oldTax}% → ${db.settings.taxRate}%`);
+    if (oldTax !== db.settings.taxRate) logAudit('settings', `Sales tax: ${oldTax}% → ${db.settings.taxRate}%`);
+    if (oldBourbonTax !== db.settings.bourbonTaxRate) logAudit('settings', `Bourbon tax: ${oldBourbonTax}% → ${db.settings.bourbonTaxRate}%`);
     toast('Saved');
   },
 
