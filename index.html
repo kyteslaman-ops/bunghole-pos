@@ -1829,7 +1829,8 @@ const Receipt = {
       <div class="receipt-header">
         <h2>The Bunghole</h2>
         <p>Bourbon Lounge</p>
-        <p>BourbonManor.com • Bardstown, KY</p>
+        <p>714 N 3rd Street</p>
+        <p>Bardstown, KY 40004</p>
         <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
       </div>
       <div class="receipt-items">${itemsHtml}</div>
@@ -1867,8 +1868,8 @@ const Receipt = {
       <div class="receipt-header">
         <h2>The Bunghole</h2>
         <p>Bourbon Lounge</p>
-        <p>BourbonManor.com</p>
-        <p>Bardstown, KY</p>
+        <p>714 N 3rd Street</p>
+        <p>Bardstown, KY 40004</p>
         <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
         <p>Server: ${tx.employee}</p>
       </div>
@@ -1884,6 +1885,7 @@ const Receipt = {
         <p>Thank you for visiting!</p>
         <p>🥃 Cheers! 🥃</p>
         <p style="margin-top:8px;font-size:9px;">BourbonManor.com</p>
+        <p style="font-size:9px;">thebungholebourbonlounge@gmail.com</p>
       </div>
       <div class="receipt-barcode">${tx.id}</div>
     `;
@@ -1906,7 +1908,7 @@ const Receipt = {
     const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    let text = `🥃 THE BUNGHOLE\nBourbon Lounge\nBourbonManor.com\nBardstown, KY\n`;
+    let text = `🥃 THE BUNGHOLE\nBourbon Lounge\n714 N 3rd Street\nBardstown, KY 40004\n`;
     text += `────────────────\n`;
     text += `${dateStr} ${timeStr}\n`;
     text += `────────────────\n\n`;

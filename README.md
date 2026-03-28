@@ -1,8 +1,16 @@
 # The Bunghole Bourbon Lounge — POS System
 
-A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at BourbonManor.com in Bardstown, KY.
+A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at BourbonManor.com.
 
-**Live Site:** https://bunghole-pos.kyteslaman.workers.dev
+## Business Info
+
+| | |
+|---|---|
+| **Address** | 714 N 3rd Street, Bardstown, KY 40004 |
+| **Email** | thebungholebourbonlounge@gmail.com |
+| **Website** | BourbonManor.com |
+
+**Live POS:** https://bunghole-pos.kyteslaman.workers.dev
 
 ---
 
