@@ -1036,15 +1036,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
   <div class="modal-box" style="max-width:340px;">
     <div class="modal-head"><h2>🧾 Receipt</h2><button class="modal-close" onclick="Modal.close('modalReceipt')">&times;</button></div>
     <div class="modal-body" style="text-align:center;">
+      <p style="color:var(--amber-300);font-size:13px;margin-bottom:8px;">📸 Take a photo if you need a copy</p>
       <div style="background:#fff;color:#000;padding:16px;border-radius:var(--radius-sm);margin-bottom:12px;" id="receiptPreview">
         <!-- Receipt preview rendered here -->
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn-sm btn-full" onclick="Receipt.share()" style="padding:14px;flex:1;min-width:45%;background:var(--blue);border-color:var(--blue);color:white;">📱 Text / Share</button>
-        <button class="btn-sm btn-full" onclick="Receipt.email()" style="padding:14px;flex:1;min-width:45%;">📧 Email</button>
-      </div>
-      <button class="btn-sm btn-gold btn-full" onclick="Receipt.print()" style="padding:12px;margin-top:8px;">🖨️ Print Receipt</button>
-      <button class="btn-sm btn-full" onclick="Modal.close('modalReceipt')" style="padding:10px;margin-top:8px;color:var(--text-muted);">No Receipt Needed</button>
+      <button class="btn-sm btn-full" onclick="Receipt.email()" style="padding:14px;">📧 Email Receipt</button>
+      <button class="btn-sm btn-full" onclick="Modal.close('modalReceipt')" style="padding:12px;margin-top:8px;color:var(--text-muted);">Done</button>
     </div>
   </div>
 </div>
