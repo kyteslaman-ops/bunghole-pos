@@ -1471,12 +1471,45 @@ const Employees = {
         <span class="name">${emp.name}</span>
         <span class="role ${emp.role}">${emp.role}</span>
         <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:11px;">${emp.pin}</span>
+        <button class="btn-sm" onclick="Employees.edit('${emp.id}')" style="background:var(--blue);border-color:var(--blue);">Edit</button>
         ${emp.id !== 'emp_owner' ? `
           <button class="btn-sm" onclick="Employees.toggle('${emp.id}')">${emp.active !== false ? 'Disable' : 'Enable'}</button>
           <button class="btn-sm btn-danger" onclick="Employees.remove('${emp.id}')" style="padding:4px 6px;">✕</button>
         ` : ''}
       </div>
     `).join('');
+  },
+
+  edit(id) {
+    const emp = db.employees.find(e => e.id === id);
+    if (!emp) return;
+
+    const newName = prompt('Edit name:', emp.name);
+    if (newName === null) return; // cancelled
+
+    const newPin = prompt('Edit 4-digit PIN:', emp.pin);
+    if (newPin === null) return; // cancelled
+
+    if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+      toast('PIN must be 4 digits', 'error');
+      return;
+    }
+
+    // Check if PIN is used by another employee
+    const pinInUse = db.employees.find(e => e.pin === newPin && e.id !== id);
+    if (pinInUse) {
+      toast('PIN already in use by ' + pinInUse.name, 'error');
+      return;
+    }
+
+    const oldName = emp.name;
+    const oldPin = emp.pin;
+    emp.name = newName.trim() || emp.name;
+    emp.pin = newPin;
+    saveDB();
+    logAudit('employee', `Edited ${oldName}: name→${emp.name}, PIN→${emp.pin}`);
+    Employees.render();
+    toast(`${emp.name} updated`);
   },
 
   add() {
