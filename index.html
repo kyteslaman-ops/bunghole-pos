@@ -1075,7 +1075,7 @@ const ROOMS = [
    ═══════════════════════════════════════════ */
 const DB_KEY = 'bunghole_pos_v4';
 let db = {
-  employees: [{ id: 'emp_owner', name: 'Owner', pin: '1234', role: 'manager', active: true }],
+  employees: [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }],
   categories: [
     { id:'cocktail', name:'Cocktails', icon:'🍸' },
     { id:'flight', name:'Flights', icon:'✈️' },
@@ -1106,7 +1106,7 @@ function loadDB() {
     if (s) {
       const loaded = JSON.parse(s);
       db = { ...db, ...loaded };
-      if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '1234', role: 'manager', active: true }];
+      if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }];
       if (!db.voidedSales) db.voidedSales = [];
       if (!db.auditLog) db.auditLog = [];
     }

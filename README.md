@@ -115,7 +115,7 @@ Old Fashioned, Manhattan, Mint Julep, Whiskey Sour, Kentucky Mule, Boulevardier,
 3. Add to Home Screen for app-like access
 
 ### Default Login
-- PIN: `1234` (Owner account)
+- PIN: `5366` (Owner account)
 - Change this in Settings after first login!
 
 ### iPad Setup for Business
