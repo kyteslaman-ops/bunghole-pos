@@ -913,22 +913,52 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
           <span>Total:</span><span id="checkoutTotal">$0.00</span>
         </div>
       </div>
-      <button class="btn-sm btn-gold btn-full" onclick="Cart.completeCheckout()" style="padding:14px;" id="btnCompleteCheckout">Complete Payment</button>
+      <button class="btn-sm btn-gold btn-full" onclick="Cart.completeCheckout()" style="padding:14px;" id="btnCompleteCheckout">✓ Accept Charges</button>
     </div>
   </div>
 </div>
 
 <div class="modal-overlay" id="modalRoom">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:400px;">
     <div class="modal-head"><h2>🏨 Room Charge</h2><button class="modal-close" onclick="Modal.close('modalRoom')">&times;</button></div>
     <div class="modal-body">
-      <p style="color:var(--text-muted);margin-bottom:10px;font-size:12px;">Select room:</p>
-      <div class="room-grid" id="roomGrid"></div>
-      <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg-card);border-radius:var(--radius-sm);margin-top:12px;">
-        <span>Amount:</span>
-        <span style="font-family:var(--font-mono);font-weight:700;color:var(--amber-300);" id="roomAmount">$0.00</span>
+      <!-- Step 1: Select Room -->
+      <div id="roomStep1">
+        <p style="color:var(--text-muted);margin-bottom:10px;font-size:12px;">Step 1: Select room</p>
+        <div class="room-grid" id="roomGrid"></div>
+        <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg-card);border-radius:var(--radius-sm);margin-top:12px;">
+          <span>Subtotal + Tax:</span>
+          <span style="font-family:var(--font-mono);font-weight:700;color:var(--text-secondary);" id="roomAmount">$0.00</span>
+        </div>
+        <button class="btn-sm btn-gold btn-full" id="btnRoomNext" onclick="Cart.roomNextStep()" style="padding:14px;margin-top:12px;" disabled>Next: Add Tip →</button>
       </div>
-      <button class="btn-sm btn-gold btn-full" id="btnPostRoom" onclick="Cart.completeRoomCharge()" style="padding:14px;margin-top:12px;" disabled>Post to Room</button>
+      <!-- Step 2: Tip & Confirm -->
+      <div id="roomStep2" style="display:none;text-align:center;">
+        <p style="color:var(--text-muted);margin-bottom:4px;font-size:12px;">Step 2: Add Tip for <span id="roomSelectedName" style="color:var(--amber-300);font-weight:600;"></span></p>
+        <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;" id="roomSubtotalDisplay">$0.00</div>
+        <div class="tip-grid">
+          <button class="tip-btn" onclick="Cart.pickRoomTip(this,0)">None</button>
+          <button class="tip-btn" onclick="Cart.pickRoomTip(this,15)">15%<small id="roomTip15">$0</small></button>
+          <button class="tip-btn selected" onclick="Cart.pickRoomTip(this,20)">20%<small id="roomTip20">$0</small></button>
+          <button class="tip-btn" onclick="Cart.pickRoomTip(this,25)">25%<small id="roomTip25">$0</small></button>
+        </div>
+        <input type="number" id="roomCustomTip" placeholder="Custom tip $" style="width:100%;text-align:center;margin:8px 0;" oninput="Cart.roomCustomTip()">
+        <div style="background:var(--bg-card);padding:12px;border-radius:var(--radius-md);margin:12px 0;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:4px;">
+            <span>Subtotal + Tax:</span><span id="roomSubtotalLine">$0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:6px;">
+            <span>Tip:</span><span id="roomTipDisplay">$0.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:22px;font-weight:700;color:var(--amber-300);">
+            <span>TOTAL:</span><span id="roomFinalTotal">$0.00</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm btn-full" onclick="Cart.roomBackStep()" style="padding:14px;flex:1;">← Back</button>
+          <button class="btn-sm btn-gold btn-full" onclick="Cart.completeRoomCharge()" style="padding:14px;flex:2;">✓ Accept Charges</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1609,6 +1639,7 @@ let selectedRoom = null;
 let checkoutType = 'card';
 let selectedTipPercent = 20;
 let tipAmount = 0;
+let roomTipAmount = 0;
 
 const Cart = {
   add(product, mod, extra) {
@@ -1776,9 +1807,12 @@ const Cart = {
   openRoomCharge() {
     if (!cart.length) { toast('Add items', 'error'); return; }
     selectedRoom = null;
+    roomTipAmount = 0;
     document.getElementById('roomAmount').textContent = document.getElementById('cartTotal').textContent;
+    document.getElementById('roomStep1').style.display = 'block';
+    document.getElementById('roomStep2').style.display = 'none';
     Cart.renderRoomGrid();
-    document.getElementById('btnPostRoom').disabled = true;
+    document.getElementById('btnRoomNext').disabled = true;
     Modal.open('modalRoom');
   },
 
@@ -1796,12 +1830,60 @@ const Cart = {
   pickRoom(id) {
     selectedRoom = id;
     Cart.renderRoomGrid();
-    document.getElementById('btnPostRoom').disabled = false;
+    document.getElementById('btnRoomNext').disabled = false;
+  },
+
+  roomNextStep() {
+    if (!selectedRoom) return;
+    const room = ROOMS.find(r => r.id === selectedRoom);
+    const subtotal = Cart.getSubtotalPlusTax();
+
+    // Show step 2
+    document.getElementById('roomStep1').style.display = 'none';
+    document.getElementById('roomStep2').style.display = 'block';
+    document.getElementById('roomSelectedName').textContent = room.name;
+    document.getElementById('roomSubtotalDisplay').textContent = '$' + subtotal.toFixed(2);
+    document.getElementById('roomSubtotalLine').textContent = '$' + subtotal.toFixed(2);
+
+    // Set up tip amounts
+    document.getElementById('roomTip15').textContent = '$' + (subtotal * 0.15).toFixed(0);
+    document.getElementById('roomTip20').textContent = '$' + (subtotal * 0.20).toFixed(0);
+    document.getElementById('roomTip25').textContent = '$' + (subtotal * 0.25).toFixed(0);
+
+    // Default to 20% tip
+    roomTipAmount = subtotal * 0.20;
+    document.querySelectorAll('#roomStep2 .tip-btn').forEach((btn, i) => btn.classList.toggle('selected', i === 2));
+    document.getElementById('roomCustomTip').value = '';
+    Cart.updateRoomTipDisplay();
+  },
+
+  roomBackStep() {
+    document.getElementById('roomStep1').style.display = 'block';
+    document.getElementById('roomStep2').style.display = 'none';
+  },
+
+  pickRoomTip(btn, pct) {
+    document.querySelectorAll('#roomStep2 .tip-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    roomTipAmount = Cart.getSubtotalPlusTax() * (pct / 100);
+    document.getElementById('roomCustomTip').value = '';
+    Cart.updateRoomTipDisplay();
+  },
+
+  roomCustomTip() {
+    roomTipAmount = parseFloat(document.getElementById('roomCustomTip').value) || 0;
+    document.querySelectorAll('#roomStep2 .tip-btn').forEach(b => b.classList.remove('selected'));
+    Cart.updateRoomTipDisplay();
+  },
+
+  updateRoomTipDisplay() {
+    document.getElementById('roomTipDisplay').textContent = '$' + roomTipAmount.toFixed(2);
+    document.getElementById('roomFinalTotal').textContent = '$' + (Cart.getSubtotalPlusTax() + roomTipAmount).toFixed(2);
   },
 
   completeRoomCharge() {
     if (!selectedRoom) return;
-    Cart.processSale('room', selectedRoom, 0);
+    Cart.processSale('room', selectedRoom, roomTipAmount);
     Modal.close('modalRoom');
   },
 
