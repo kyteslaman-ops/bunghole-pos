@@ -1256,52 +1256,56 @@ const App = {
       { name:'Age Statement', category:'flight', price:35, stock:99, alert:1, emoji:'📅', desc:'10yr, 12yr, 15yr selections' },
       { name:'Barrel Proof', category:'flight', price:42, stock:99, alert:1, emoji:'🔥', desc:'ECBP, Bookers, Rare Breed' },
 
-      // ═══ WELL BOURBONS (bottleCost: Kroger receipt, price: per 1.5oz @ 3.5x, 16oz bottle = 10 pours) ═══
+      // ═══ WELL BOURBONS (bottleCost from Kroger, price = bottleCost/10 × 3.5) ═══
       { name:'1792 Bourbon', category:'well', bottleCost:20, price:7, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Jim Beam', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Jim Beam Double Oak', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Evan Williams', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
 
       // ═══ CALL BOURBONS (from Kroger receipts) ═══
       { name:'Buffalo Trace', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🦬', markup:3.5 },
-      { name:'Four Roses Yellow', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Angels Envy', category:'call', bottleCost:24, price:8, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Larceny', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🔓', markup:3.5 },
+      { name:'Four Roses Yellow', category:'call', bottleCost:24, price:8, stock:10, alert:2, emoji:'🌹', markup:3.5 },
+      { name:'Wild Turkey Longbranch', category:'call', bottleCost:25, price:9, stock:10, alert:2, emoji:'🦃', markup:3.5 },
       { name:'Bulleit Bourbon', category:'call', bottleCost:26, price:9, stock:10, alert:2, emoji:'🎯', markup:3.5 },
       { name:'Bulleit Rye', category:'call', bottleCost:26, price:9, stock:10, alert:2, emoji:'🌾', markup:3.5 },
-      { name:'Jackson Purchase', category:'call', bottleCost:27, price:9, stock:10, alert:2, emoji:'🏛️', markup:3.5 },
-      { name:'Four Roses Small Batch', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Elijah Craig', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'⛪', markup:3.5 },
-      { name:'Red Oak Bourbon', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🌳', markup:3.5 },
-      { name:'Makers Mark', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🔴', markup:3.5 },
-      { name:'Traverse City', category:'call', bottleCost:30, price:10, stock:10, alert:2, emoji:'🚢', markup:3.5 },
-      { name:'Woodford Reserve', category:'call', bottleCost:34, price:11, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Four Roses Small Batch', category:'call', bottleCost:27, price:9, stock:10, alert:2, emoji:'🌹', markup:3.5 },
+      { name:'Elijah Craig', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'⛪', markup:3.5 },
+      { name:'Makers Mark', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'🔴', markup:3.5 },
+      { name:'Weller Special Reserve', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'Woodford Reserve', category:'call', bottleCost:30, price:11, stock:10, alert:2, emoji:'🏇', markup:3.5 },
 
       // ═══ PREMIUM BOURBONS (from Kroger receipts) ═══
-      { name:'Elijah Craig Small Batch', category:'premium', bottleCost:36, price:12, stock:10, alert:2, emoji:'⛪', markup:3.5 },
-      { name:'Castle & Key', category:'premium', bottleCost:36, price:12, stock:10, alert:2, emoji:'🏰', markup:3.5 },
-      { name:'Knob Creek 7yr', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🪵', markup:3.5 },
-      { name:'Basil Hayden Rye', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🌿', markup:3.5 },
-      { name:'Makers Mark 101', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🔴', markup:3.5 },
+      { name:'Castle & Key', category:'premium', bottleCost:36, price:13, stock:10, alert:2, emoji:'🏰', markup:3.5 },
+      { name:'Knob Creek 7yr', category:'premium', bottleCost:36, price:13, stock:10, alert:2, emoji:'🪵', markup:3.5 },
+      { name:'Knob Creek Rye', category:'premium', bottleCost:37, price:13, stock:10, alert:2, emoji:'🪵', markup:3.5 },
       { name:'Four Roses Single Barrel', category:'premium', bottleCost:38, price:13, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Bulleit 10yr', category:'premium', bottleCost:38, price:13, stock:10, alert:2, emoji:'🎯', markup:3.5 },
-      { name:'Castle & Key Batch', category:'premium', bottleCost:43, price:14, stock:10, alert:2, emoji:'🏰', markup:3.5 },
-      { name:'1792 Full Proof', category:'premium', bottleCost:45, price:15, stock:10, alert:2, emoji:'🔥', markup:3.5 },
-      { name:'Evan Williams Single Barrel', category:'premium', bottleCost:45, price:15, stock:10, alert:2, emoji:'🥃', markup:3.5 },
-      { name:'Willet', category:'premium', bottleCost:46, price:15, stock:10, alert:2, emoji:'🏚️', markup:3.5 },
-      { name:'Woodford Double Oak', category:'premium', bottleCost:48, price:16, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Russells Reserve 10yr', category:'premium', bottleCost:40, price:14, stock:10, alert:2, emoji:'🦃', markup:3.5 },
+      { name:'Angels Envy', category:'premium', bottleCost:44, price:15, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Bulleit 10yr', category:'premium', bottleCost:44, price:15, stock:10, alert:2, emoji:'🎯', markup:3.5 },
+      { name:'Evan Williams Single Barrel', category:'premium', bottleCost:45, price:16, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'1792 Full Proof', category:'premium', bottleCost:46, price:16, stock:10, alert:2, emoji:'🔥', markup:3.5 },
+      { name:'Willett', category:'premium', bottleCost:48, price:17, stock:10, alert:2, emoji:'🏚️', markup:3.5 },
 
       // ═══ TOP SHELF (from Kroger receipts) ═══
-      { name:'Makers 46', category:'topshelf', bottleCost:53, price:18, stock:10, alert:2, emoji:'🔴', markup:3.5 },
-      { name:'Blantons', category:'topshelf', bottleCost:54, price:18, stock:10, alert:2, emoji:'🐴', markup:3.5 },
-      { name:'Keller Bourbon', category:'topshelf', bottleCost:56, price:19, stock:10, alert:2, emoji:'🥃', markup:3.5 },
-      { name:'Knob Creek 12yr', category:'topshelf', bottleCost:62, price:21, stock:10, alert:2, emoji:'🪵', markup:3.5 },
-      { name:'Angels Envy Rye', category:'topshelf', bottleCost:64, price:21, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Bulleit Single Barrel', category:'topshelf', bottleCost:51, price:18, stock:10, alert:2, emoji:'🎯', markup:3.5 },
+      { name:'Woodford Double Oaked', category:'topshelf', bottleCost:52, price:18, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Rare Breed', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🦃', markup:3.5 },
+      { name:'Jackson Purchase', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🏛️', markup:3.5 },
+      { name:'Castle & Key Batch', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🏰', markup:3.5 },
+      { name:'Angels Envy Rye', category:'topshelf', bottleCost:64, price:22, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Knob Creek 12yr', category:'topshelf', bottleCost:66, price:23, stock:10, alert:2, emoji:'🪵', markup:3.5 },
+      { name:'Makers Private Select', category:'topshelf', bottleCost:78, price:27, stock:10, alert:2, emoji:'🔴', markup:3.5 },
 
       // ═══ RARE / ALLOCATED ═══
-      { name:'Eagle Rare 10yr', category:'rare', bottleCost:35, price:18, stock:10, alert:2, emoji:'🦅', markup:5 },
-      { name:'Weller Special Reserve', category:'rare', bottleCost:30, price:15, stock:10, alert:2, emoji:'🌾', markup:5 },
-      { name:'Weller Antique 107', category:'rare', bottleCost:55, price:28, stock:10, alert:2, emoji:'🌾', markup:5 },
-      { name:'EH Taylor Small Batch', category:'rare', bottleCost:65, price:32, stock:10, alert:2, emoji:'🎖️', markup:5 },
-      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:175, stock:10, alert:2, emoji:'👴', markup:4 },
-      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:275, stock:10, alert:2, emoji:'👴', markup:4 },
-      { name:'George T Stagg', category:'rare', bottleCost:400, price:95, stock:10, alert:2, emoji:'🦌', markup:4 },
+      { name:'Blantons', category:'rare', bottleCost:65, price:23, stock:10, alert:2, emoji:'🐴', markup:3.5 },
+      { name:'Eagle Rare 10yr', category:'rare', bottleCost:35, price:12, stock:10, alert:2, emoji:'🦅', markup:3.5 },
+      { name:'Weller Antique 107', category:'rare', bottleCost:55, price:19, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'EH Taylor Small Batch', category:'rare', bottleCost:65, price:23, stock:10, alert:2, emoji:'🎖️', markup:3.5 },
+      { name:'Weller 12', category:'rare', bottleCost:80, price:28, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:245, stock:10, alert:2, emoji:'👴', markup:3.5 },
+      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:385, stock:10, alert:2, emoji:'👴', markup:3.5 },
+      { name:'George T Stagg', category:'rare', bottleCost:400, price:140, stock:10, alert:2, emoji:'🦌', markup:3.5 },
 
       // ═══ TOP 10 BEERS (National Avg Prices 2025) ═══
       { name:'Modelo Especial', category:'beer', price:7, stock:24, alert:6, emoji:'🇲🇽' },
@@ -2467,50 +2471,54 @@ const Settings = {
   },
 
   loadNewBourbons() {
-    // New bourbons from Kroger receipts (bottleCost / 10 pours × 3.5 markup, stock = pours per bottle)
+    // New bourbons from Kroger receipts (price = bottleCost / 10 pours × 3.5 markup)
     const newBourbons = [
       // WELL
       { name:'1792 Bourbon', category:'well', bottleCost:20, price:7, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Jim Beam', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Jim Beam Double Oak', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'Evan Williams', category:'well', bottleCost:23, price:8, stock:10, alert:2, emoji:'🥃', markup:3.5 },
       // CALL
       { name:'Buffalo Trace', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🦬', markup:3.5 },
-      { name:'Four Roses Yellow', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Angels Envy', category:'call', bottleCost:24, price:8, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Larceny', category:'call', bottleCost:23, price:8, stock:10, alert:2, emoji:'🔓', markup:3.5 },
+      { name:'Four Roses Yellow', category:'call', bottleCost:24, price:8, stock:10, alert:2, emoji:'🌹', markup:3.5 },
+      { name:'Wild Turkey Longbranch', category:'call', bottleCost:25, price:9, stock:10, alert:2, emoji:'🦃', markup:3.5 },
       { name:'Bulleit Bourbon', category:'call', bottleCost:26, price:9, stock:10, alert:2, emoji:'🎯', markup:3.5 },
       { name:'Bulleit Rye', category:'call', bottleCost:26, price:9, stock:10, alert:2, emoji:'🌾', markup:3.5 },
-      { name:'Jackson Purchase', category:'call', bottleCost:27, price:9, stock:10, alert:2, emoji:'🏛️', markup:3.5 },
-      { name:'Four Roses Small Batch', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Elijah Craig', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'⛪', markup:3.5 },
-      { name:'Red Oak Bourbon', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🌳', markup:3.5 },
-      { name:'Makers Mark', category:'call', bottleCost:28, price:9, stock:10, alert:2, emoji:'🔴', markup:3.5 },
-      { name:'Traverse City', category:'call', bottleCost:30, price:10, stock:10, alert:2, emoji:'🚢', markup:3.5 },
-      { name:'Woodford Reserve', category:'call', bottleCost:34, price:11, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Four Roses Small Batch', category:'call', bottleCost:27, price:9, stock:10, alert:2, emoji:'🌹', markup:3.5 },
+      { name:'Elijah Craig', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'⛪', markup:3.5 },
+      { name:'Makers Mark', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'🔴', markup:3.5 },
+      { name:'Weller Special Reserve', category:'call', bottleCost:28, price:10, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'Woodford Reserve', category:'call', bottleCost:30, price:11, stock:10, alert:2, emoji:'🏇', markup:3.5 },
       // PREMIUM
-      { name:'Elijah Craig Small Batch', category:'premium', bottleCost:36, price:12, stock:10, alert:2, emoji:'⛪', markup:3.5 },
-      { name:'Castle & Key', category:'premium', bottleCost:36, price:12, stock:10, alert:2, emoji:'🏰', markup:3.5 },
-      { name:'Knob Creek 7yr', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🪵', markup:3.5 },
-      { name:'Basil Hayden Rye', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🌿', markup:3.5 },
-      { name:'Makers Mark 101', category:'premium', bottleCost:37, price:12, stock:10, alert:2, emoji:'🔴', markup:3.5 },
+      { name:'Castle & Key', category:'premium', bottleCost:36, price:13, stock:10, alert:2, emoji:'🏰', markup:3.5 },
+      { name:'Knob Creek 7yr', category:'premium', bottleCost:36, price:13, stock:10, alert:2, emoji:'🪵', markup:3.5 },
+      { name:'Knob Creek Rye', category:'premium', bottleCost:37, price:13, stock:10, alert:2, emoji:'🪵', markup:3.5 },
       { name:'Four Roses Single Barrel', category:'premium', bottleCost:38, price:13, stock:10, alert:2, emoji:'🌹', markup:3.5 },
-      { name:'Bulleit 10yr', category:'premium', bottleCost:38, price:13, stock:10, alert:2, emoji:'🎯', markup:3.5 },
-      { name:'Castle & Key Batch', category:'premium', bottleCost:43, price:14, stock:10, alert:2, emoji:'🏰', markup:3.5 },
-      { name:'1792 Full Proof', category:'premium', bottleCost:45, price:15, stock:10, alert:2, emoji:'🔥', markup:3.5 },
-      { name:'Evan Williams Single Barrel', category:'premium', bottleCost:45, price:15, stock:10, alert:2, emoji:'🥃', markup:3.5 },
-      { name:'Willet', category:'premium', bottleCost:46, price:15, stock:10, alert:2, emoji:'🏚️', markup:3.5 },
-      { name:'Woodford Double Oak', category:'premium', bottleCost:48, price:16, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Russells Reserve 10yr', category:'premium', bottleCost:40, price:14, stock:10, alert:2, emoji:'🦃', markup:3.5 },
+      { name:'Angels Envy', category:'premium', bottleCost:44, price:15, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Bulleit 10yr', category:'premium', bottleCost:44, price:15, stock:10, alert:2, emoji:'🎯', markup:3.5 },
+      { name:'Evan Williams Single Barrel', category:'premium', bottleCost:45, price:16, stock:10, alert:2, emoji:'🥃', markup:3.5 },
+      { name:'1792 Full Proof', category:'premium', bottleCost:46, price:16, stock:10, alert:2, emoji:'🔥', markup:3.5 },
+      { name:'Willett', category:'premium', bottleCost:48, price:17, stock:10, alert:2, emoji:'🏚️', markup:3.5 },
       // TOP SHELF
-      { name:'Makers 46', category:'topshelf', bottleCost:53, price:18, stock:10, alert:2, emoji:'🔴', markup:3.5 },
-      { name:'Blantons', category:'topshelf', bottleCost:54, price:18, stock:10, alert:2, emoji:'🐴', markup:3.5 },
-      { name:'Keller Bourbon', category:'topshelf', bottleCost:56, price:19, stock:10, alert:2, emoji:'🥃', markup:3.5 },
-      { name:'Knob Creek 12yr', category:'topshelf', bottleCost:62, price:21, stock:10, alert:2, emoji:'🪵', markup:3.5 },
-      { name:'Angels Envy Rye', category:'topshelf', bottleCost:64, price:21, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Bulleit Single Barrel', category:'topshelf', bottleCost:51, price:18, stock:10, alert:2, emoji:'🎯', markup:3.5 },
+      { name:'Woodford Double Oaked', category:'topshelf', bottleCost:52, price:18, stock:10, alert:2, emoji:'🏇', markup:3.5 },
+      { name:'Rare Breed', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🦃', markup:3.5 },
+      { name:'Jackson Purchase', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🏛️', markup:3.5 },
+      { name:'Castle & Key Batch', category:'topshelf', bottleCost:53, price:19, stock:10, alert:2, emoji:'🏰', markup:3.5 },
+      { name:'Angels Envy Rye', category:'topshelf', bottleCost:64, price:22, stock:10, alert:2, emoji:'😇', markup:3.5 },
+      { name:'Knob Creek 12yr', category:'topshelf', bottleCost:66, price:23, stock:10, alert:2, emoji:'🪵', markup:3.5 },
+      { name:'Makers Private Select', category:'topshelf', bottleCost:78, price:27, stock:10, alert:2, emoji:'🔴', markup:3.5 },
       // RARE
-      { name:'Eagle Rare 10yr', category:'rare', bottleCost:35, price:18, stock:10, alert:2, emoji:'🦅', markup:5 },
-      { name:'Weller Special Reserve', category:'rare', bottleCost:30, price:15, stock:10, alert:2, emoji:'🌾', markup:5 },
-      { name:'Weller Antique 107', category:'rare', bottleCost:55, price:28, stock:10, alert:2, emoji:'🌾', markup:5 },
-      { name:'EH Taylor Small Batch', category:'rare', bottleCost:65, price:32, stock:10, alert:2, emoji:'🎖️', markup:5 },
-      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:175, stock:10, alert:2, emoji:'👴', markup:4 },
-      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:275, stock:10, alert:2, emoji:'👴', markup:4 },
-      { name:'George T Stagg', category:'rare', bottleCost:400, price:95, stock:10, alert:2, emoji:'🦌', markup:4 }
+      { name:'Blantons', category:'rare', bottleCost:65, price:23, stock:10, alert:2, emoji:'🐴', markup:3.5 },
+      { name:'Eagle Rare 10yr', category:'rare', bottleCost:35, price:12, stock:10, alert:2, emoji:'🦅', markup:3.5 },
+      { name:'Weller Antique 107', category:'rare', bottleCost:55, price:19, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'EH Taylor Small Batch', category:'rare', bottleCost:65, price:23, stock:10, alert:2, emoji:'🎖️', markup:3.5 },
+      { name:'Weller 12', category:'rare', bottleCost:80, price:28, stock:10, alert:2, emoji:'🌾', markup:3.5 },
+      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:245, stock:10, alert:2, emoji:'👴', markup:3.5 },
+      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:385, stock:10, alert:2, emoji:'👴', markup:3.5 },
+      { name:'George T Stagg', category:'rare', bottleCost:400, price:140, stock:10, alert:2, emoji:'🦌', markup:3.5 }
     ];
 
     // Add new bourbons and fix existing bourbon stock levels
@@ -2523,11 +2531,15 @@ const Settings = {
         // Add new bourbon
         db.products.push({ ...b, id: uid(), eightySixed: false });
         added++;
-      } else if (existing.stock <= 1 && existing.bottleCost) {
-        // Fix existing bourbon with stock:1 to stock:10
-        existing.stock = 10;
-        existing.alert = 2;
-        updated++;
+      } else {
+        // Update existing bourbon with correct price, stock, category
+        let changed = false;
+        if (existing.price !== b.price) { existing.price = b.price; changed = true; }
+        if (existing.bottleCost !== b.bottleCost) { existing.bottleCost = b.bottleCost; changed = true; }
+        if (existing.stock < 10) { existing.stock = 10; changed = true; }
+        if (existing.alert < 2) { existing.alert = 2; changed = true; }
+        if (existing.category !== b.category) { existing.category = b.category; changed = true; }
+        if (changed) updated++;
       }
     });
 
@@ -2535,7 +2547,7 @@ const Settings = {
       saveDB();
       let msg = [];
       if (added > 0) msg.push(`Added ${added} new`);
-      if (updated > 0) msg.push(`Fixed ${updated} stock levels`);
+      if (updated > 0) msg.push(`Updated ${updated} prices`);
       logAudit('inventory', msg.join(', '));
       toast(msg.join(', ') + '!');
       POS.renderProducts();
