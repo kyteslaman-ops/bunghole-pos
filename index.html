@@ -849,6 +849,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         <button class="btn-sm btn-full" onclick="App.backup()" style="padding:12px;">Export JSON</button>
       </div>
 
+      <div class="settings-section" style="background:var(--bg-elevated);border:1px solid var(--amber-500);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
+        <h3 style="color:var(--amber-300);">🥃 Add New Bourbons</h3>
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Add latest bourbons from inventory without losing existing data</p>
+        <button class="btn-sm btn-gold btn-full" onclick="Settings.loadNewBourbons()" style="padding:12px;">+ Load New Bourbons</button>
+      </div>
+
       <div class="settings-section danger-zone">
         <h3>Danger Zone</h3>
         <button class="btn-sm btn-danger btn-full" onclick="Settings.clearAll()" style="padding:12px;">Clear All Data</button>
@@ -2458,6 +2464,74 @@ const Settings = {
     logAudit('settings', `Removed category: ${cat?.name}`);
     Settings.renderCats();
     POS.renderCats();
+  },
+
+  loadNewBourbons() {
+    // New bourbons from Kroger receipts (bottleCost / 10.5 pours × 3.5 markup)
+    const newBourbons = [
+      // WELL
+      { name:'1792 Bourbon', category:'well', bottleCost:20, price:7, stock:1, alert:1, emoji:'🥃', markup:3.5 },
+      // CALL
+      { name:'Buffalo Trace', category:'call', bottleCost:23, price:8, stock:1, alert:1, emoji:'🦬', markup:3.5 },
+      { name:'Four Roses Yellow', category:'call', bottleCost:23, price:8, stock:1, alert:1, emoji:'🌹', markup:3.5 },
+      { name:'Angels Envy', category:'call', bottleCost:24, price:8, stock:1, alert:1, emoji:'😇', markup:3.5 },
+      { name:'Bulleit Bourbon', category:'call', bottleCost:26, price:9, stock:1, alert:1, emoji:'🎯', markup:3.5 },
+      { name:'Bulleit Rye', category:'call', bottleCost:26, price:9, stock:1, alert:1, emoji:'🌾', markup:3.5 },
+      { name:'Jackson Purchase', category:'call', bottleCost:27, price:9, stock:1, alert:1, emoji:'🏛️', markup:3.5 },
+      { name:'Four Roses Small Batch', category:'call', bottleCost:28, price:9, stock:1, alert:1, emoji:'🌹', markup:3.5 },
+      { name:'Elijah Craig', category:'call', bottleCost:28, price:9, stock:1, alert:1, emoji:'⛪', markup:3.5 },
+      { name:'Red Oak Bourbon', category:'call', bottleCost:28, price:9, stock:1, alert:1, emoji:'🌳', markup:3.5 },
+      { name:'Makers Mark', category:'call', bottleCost:28, price:9, stock:1, alert:1, emoji:'🔴', markup:3.5 },
+      { name:'Traverse City', category:'call', bottleCost:30, price:10, stock:1, alert:1, emoji:'🚢', markup:3.5 },
+      { name:'Woodford Reserve', category:'call', bottleCost:34, price:11, stock:1, alert:1, emoji:'🏇', markup:3.5 },
+      // PREMIUM
+      { name:'Elijah Craig Small Batch', category:'premium', bottleCost:36, price:12, stock:1, alert:1, emoji:'⛪', markup:3.5 },
+      { name:'Castle & Key', category:'premium', bottleCost:36, price:12, stock:1, alert:1, emoji:'🏰', markup:3.5 },
+      { name:'Knob Creek 7yr', category:'premium', bottleCost:37, price:12, stock:1, alert:1, emoji:'🪵', markup:3.5 },
+      { name:'Basil Hayden Rye', category:'premium', bottleCost:37, price:12, stock:1, alert:1, emoji:'🌿', markup:3.5 },
+      { name:'Makers Mark 101', category:'premium', bottleCost:37, price:12, stock:1, alert:1, emoji:'🔴', markup:3.5 },
+      { name:'Four Roses Single Barrel', category:'premium', bottleCost:38, price:13, stock:1, alert:1, emoji:'🌹', markup:3.5 },
+      { name:'Bulleit 10yr', category:'premium', bottleCost:38, price:13, stock:1, alert:1, emoji:'🎯', markup:3.5 },
+      { name:'Castle & Key Batch', category:'premium', bottleCost:43, price:14, stock:1, alert:1, emoji:'🏰', markup:3.5 },
+      { name:'1792 Full Proof', category:'premium', bottleCost:45, price:15, stock:1, alert:1, emoji:'🔥', markup:3.5 },
+      { name:'Evan Williams Single Barrel', category:'premium', bottleCost:45, price:15, stock:1, alert:1, emoji:'🥃', markup:3.5 },
+      { name:'Willet', category:'premium', bottleCost:46, price:15, stock:1, alert:1, emoji:'🏚️', markup:3.5 },
+      { name:'Woodford Double Oak', category:'premium', bottleCost:48, price:16, stock:1, alert:1, emoji:'🏇', markup:3.5 },
+      // TOP SHELF
+      { name:'Makers 46', category:'topshelf', bottleCost:53, price:18, stock:1, alert:1, emoji:'🔴', markup:3.5 },
+      { name:'Blantons', category:'topshelf', bottleCost:54, price:18, stock:1, alert:1, emoji:'🐴', markup:3.5 },
+      { name:'Keller Bourbon', category:'topshelf', bottleCost:56, price:19, stock:1, alert:1, emoji:'🥃', markup:3.5 },
+      { name:'Knob Creek 12yr', category:'topshelf', bottleCost:62, price:21, stock:1, alert:1, emoji:'🪵', markup:3.5 },
+      { name:'Angels Envy Rye', category:'topshelf', bottleCost:64, price:21, stock:1, alert:1, emoji:'😇', markup:3.5 },
+      // RARE
+      { name:'Eagle Rare 10yr', category:'rare', bottleCost:35, price:18, stock:1, alert:1, emoji:'🦅', markup:5 },
+      { name:'Weller Special Reserve', category:'rare', bottleCost:30, price:15, stock:1, alert:1, emoji:'🌾', markup:5 },
+      { name:'Weller Antique 107', category:'rare', bottleCost:55, price:28, stock:1, alert:1, emoji:'🌾', markup:5 },
+      { name:'EH Taylor Small Batch', category:'rare', bottleCost:65, price:32, stock:1, alert:1, emoji:'🎖️', markup:5 },
+      { name:'Pappy 15yr', category:'rare', bottleCost:700, price:175, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'Pappy 20yr', category:'rare', bottleCost:1100, price:275, stock:1, alert:1, emoji:'👴', markup:4 },
+      { name:'George T Stagg', category:'rare', bottleCost:400, price:95, stock:1, alert:1, emoji:'🦌', markup:4 }
+    ];
+
+    // Add only bourbons that don't already exist (by name)
+    const existingNames = db.products.map(p => p.name.toLowerCase());
+    let added = 0;
+    newBourbons.forEach(b => {
+      if (!existingNames.includes(b.name.toLowerCase())) {
+        db.products.push({ ...b, id: uid(), eightySixed: false });
+        added++;
+      }
+    });
+
+    if (added > 0) {
+      saveDB();
+      logAudit('inventory', `Loaded ${added} new bourbons from Kroger receipts`);
+      toast(`Added ${added} new bourbons!`);
+      POS.renderProducts();
+      Inventory.render();
+    } else {
+      toast('All bourbons already in inventory', 'info');
+    }
   },
 
   clearAll() {
