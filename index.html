@@ -1603,20 +1603,26 @@ const POS = {
     if (p.eightySixed || p.stock <= 0) { toast('Unavailable', 'error'); return; }
 
     // Bourbon categories get pour size modifiers
+    // Base price is for 1.5oz (10 pours per 750ml bottle)
     const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare'];
     if (bourbonCats.includes(p.category)) {
       pendingModProduct = p;
-      selectedMod = { label: 'Neat (2oz)', extra: 0 };
+      selectedMod = { label: 'Shot (1.5oz)', extra: 0 };
       document.getElementById('modTitle').textContent = p.name;
+      // Calculate proportional extras based on pour size vs 1.5oz base
+      const shotExtra = 0;                                    // 1.5oz = base price
+      const neatExtra = Math.round(p.price * 0.33);           // 2oz = +33%
+      const tastingExtra = Math.round(p.price * -0.33);       // 1oz = -33%
+      const doubleExtra = Math.round(p.price * 1.67);         // 4oz = +167%
       const mods = [
-        { label: 'Shot (1.5oz)', extra: -2, note: '-$2' },
-        { label: 'Neat (2oz)', extra: 0, note: 'Standard' },
-        { label: 'Rocks (2oz)', extra: 0, note: 'Over ice' },
-        { label: 'Tasting (1oz)', extra: -4, note: '-$4' },
-        { label: 'Double (4oz)', extra: p.price * 0.8, note: `+$${(p.price * 0.8).toFixed(0)}` }
+        { label: 'Shot (1.5oz)', extra: shotExtra, note: `$${p.price}` },
+        { label: 'Neat (2oz)', extra: neatExtra, note: `$${p.price + neatExtra}` },
+        { label: 'Rocks (2oz)', extra: neatExtra, note: `$${p.price + neatExtra}` },
+        { label: 'Tasting (1oz)', extra: tastingExtra, note: `$${p.price + tastingExtra}` },
+        { label: 'Double (4oz)', extra: doubleExtra, note: `$${p.price + doubleExtra}` }
       ];
       document.getElementById('modGrid').innerHTML = mods.map((m, i) =>
-        `<button class="mod-btn ${i === 1 ? 'selected' : ''}" onclick="POS.pickMod(this,'${m.label}',${m.extra})">${m.label}<small>${m.note}</small></button>`
+        `<button class="mod-btn ${i === 0 ? 'selected' : ''}" onclick="POS.pickMod(this,'${m.label}',${m.extra})">${m.label}<small>${m.note}</small></button>`
       ).join('');
       Modal.open('modalMod');
     }
