@@ -42,7 +42,7 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
   - Enter bottle cost (wholesale)
   - Auto-calculates retail price per pour
   - 10 pours per 750ml bottle (1.5oz each)
-  - 3.5× markup standard
+  - 3× markup standard
 - Stock tracking = pours remaining in bottle
 - Low-stock alerts at 2 pours remaining
 - **Load New Bourbons** button — adds/updates bourbon inventory without losing other data
@@ -80,73 +80,73 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
 For small bars with 1-2 bottles of each spirit:
 
 ```
-Price per Shot = (Bottle Cost / 10 pours) × 3.5
+Price per Shot = (Bottle Cost / 10 pours) × 3
 
 Example:
 - Bottle Cost: $23 (Buffalo Trace from Kroger)
 - Pours per Bottle: 10 (750ml ÷ 1.5oz)
-- Markup: 3.5×
+- Markup: 3×
 
-Price = ($23 / 10) × 3.5 = $8 per pour
+Price = ($23 / 10) × 3 = $7 per pour
 ```
 
 ---
 
 ## Bourbon Inventory (from Kroger receipts)
 
-### Well ($7-8/pour)
+### Well ($6-7/pour)
 | Bourbon | Bottle Cost | Per Pour |
 |---------|-------------|----------|
-| 1792 Bourbon | $20 | $7 |
-| Jim Beam | $23 | $8 |
-| Evan Williams | $23 | $8 |
+| 1792 Bourbon | $20 | $6 |
+| Jim Beam | $23 | $7 |
+| Evan Williams | $23 | $7 |
 
-### Call ($8-11/pour)
+### Call ($7-9/pour)
 | Bourbon | Bottle Cost | Per Pour |
 |---------|-------------|----------|
-| Buffalo Trace | $23 | $8 |
-| Larceny | $23 | $8 |
-| Four Roses Yellow | $24 | $8 |
-| Wild Turkey Longbranch | $25 | $9 |
-| Bulleit Bourbon | $26 | $9 |
-| Elijah Craig | $28 | $10 |
-| Makers Mark | $28 | $10 |
-| Woodford Reserve | $30 | $11 |
+| Buffalo Trace | $23 | $7 |
+| Larceny | $23 | $7 |
+| Four Roses Yellow | $24 | $7 |
+| Wild Turkey Longbranch | $25 | $8 |
+| Bulleit Bourbon | $26 | $8 |
+| Elijah Craig | $28 | $8 |
+| Makers Mark | $28 | $8 |
+| Woodford Reserve | $30 | $9 |
 
-### Premium ($13-17/pour)
+### Premium ($11-14/pour)
 | Bourbon | Bottle Cost | Per Pour |
 |---------|-------------|----------|
-| Castle & Key | $36 | $13 |
-| Knob Creek 7yr | $36 | $13 |
-| Four Roses Single Barrel | $38 | $13 |
-| Russells Reserve 10yr | $40 | $14 |
-| Angels Envy | $44 | $15 |
-| Evan Williams Single Barrel | $45 | $16 |
-| 1792 Full Proof | $46 | $16 |
-| Willett | $48 | $17 |
+| Castle & Key | $36 | $11 |
+| Knob Creek 7yr | $36 | $11 |
+| Four Roses Single Barrel | $38 | $11 |
+| Russells Reserve 10yr | $40 | $12 |
+| Angels Envy | $44 | $13 |
+| Evan Williams Single Barrel | $45 | $14 |
+| 1792 Full Proof | $46 | $14 |
+| Willett | $48 | $14 |
 
-### Top Shelf ($18-27/pour)
+### Top Shelf ($15-23/pour)
 | Bourbon | Bottle Cost | Per Pour |
 |---------|-------------|----------|
-| Bulleit Single Barrel | $51 | $18 |
-| Woodford Double Oaked | $52 | $18 |
-| Rare Breed | $53 | $19 |
-| Jackson Purchase | $53 | $19 |
-| Angels Envy Rye | $64 | $22 |
-| Knob Creek 12yr | $66 | $23 |
-| Makers Private Select | $78 | $27 |
+| Bulleit Single Barrel | $51 | $15 |
+| Woodford Double Oaked | $52 | $16 |
+| Rare Breed | $53 | $16 |
+| Jackson Purchase | $53 | $16 |
+| Angels Envy Rye | $64 | $19 |
+| Knob Creek 12yr | $66 | $20 |
+| Makers Private Select | $78 | $23 |
 
-### Rare/Allocated ($12-385/pour)
+### Rare/Allocated ($11-330/pour)
 | Bourbon | Bottle Cost | Per Pour |
 |---------|-------------|----------|
-| Eagle Rare 10yr | $35 | $12 |
-| Weller Antique 107 | $55 | $19 |
-| Blantons | $65 | $23 |
-| EH Taylor Small Batch | $65 | $23 |
-| Weller 12 | $80 | $28 |
-| George T Stagg | $400 | $140 |
-| Pappy 15yr | $700 | $245 |
-| Pappy 20yr | $1100 | $385 |
+| Eagle Rare 10yr | $35 | $11 |
+| Weller Antique 107 | $55 | $17 |
+| Blantons | $65 | $20 |
+| EH Taylor Small Batch | $65 | $20 |
+| Weller 12 | $80 | $24 |
+| George T Stagg | $400 | $120 |
+| Pappy 15yr | $700 | $210 |
+| Pappy 20yr | $1100 | $330 |
 
 ### Other Categories
 - **Cocktails** — Old Fashioned, Manhattan, Mint Julep, Whiskey Sour, Kentucky Mule, and more
