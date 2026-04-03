@@ -92,6 +92,26 @@ Price = ($23 / 10) × 3 = $7 per pour
 
 ---
 
+## Pour Sizes & Pricing
+
+When selecting a bourbon, the customer chooses their pour size. Prices are **proportional** to the base 1.5oz shot price:
+
+| Pour Size | Ounces | Price Calculation | Example ($7 bourbon) | Example ($210 bourbon) |
+|-----------|--------|-------------------|----------------------|------------------------|
+| **Shot** | 1.5oz | Base price | $7 | $210 |
+| **Neat** | 2oz | +33% | $9 | $279 |
+| **Rocks** | 2oz | +33% | $9 | $279 |
+| **Tasting** | 1oz | -33% | $5 | $141 |
+| **Double** | 4oz | +167% | $19 | $561 |
+
+- **Shot (1.5oz)** — Standard US bar pour, pre-selected as default
+- **Neat (2oz)** — Served at room temperature, no ice
+- **Rocks (2oz)** — Served over ice
+- **Tasting (1oz)** — Smaller pour for sampling
+- **Double (4oz)** — 2.67× the standard pour
+
+---
+
 ## Bourbon Inventory (from Kroger receipts)
 
 ### Well ($6-7/pour)
