@@ -22,6 +22,7 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
 - Cocktail bourbon upgrades (Well → Call → Premium → Top Shelf → Rare)
 - Quick search across all products
 - 86 mode (mark items as unavailable)
+- **✨ Special button** — Enter custom items with manual pricing (for off-menu requests)
 
 ### Cart & Checkout
 - Add/remove items with quantity controls
@@ -29,6 +30,15 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
 - Card or Cash payment
 - Room charge for B&B guests (with tip selection)
 - Cancel order with reason tracking
+- **Discounts** — Quick 10%, 20%, custom %, or full comp (🎁)
+- **21+ ID Check** — Required verification for alcohol orders (blocks checkout until confirmed)
+
+### Tabs (Running Orders)
+- **Start Tab** — Save current cart under a guest's name
+- **Open Tabs** — View all running tabs with totals and item counts
+- **Add to Tab** — Load a tab to add more items
+- **Close Tab** — Cash out when guest is ready
+- Tabs persist in browser (survive refresh/close)
 
 ### Receipts
 - On-screen receipt after every sale
@@ -51,9 +61,11 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
 - 10 rooms from Bourbon Manor pre-loaded:
   - Manor: Sweet Old Fashioned, Mint Julep, Classic Sazerac, Hotty Toddy, Southern Love, Manhattan Honeymoon, Master Distiller's Den
   - Federal House: Debutante's Dream, Magnolia Maiden, Scarlet Starlet
-- 2-step flow: Select room → Add tip → Accept Charges
+- 2-step flow: Select room → Add tip → **Guest signature** → Accept Charges
+- **Signature pad** — Touch-friendly canvas for guest authorization
 - Tip selection (None, 15%, 20%, 25%, custom)
 - Track pending vs. posted charges
+- Signature saved with transaction record
 
 ### Employee Management
 - PIN-based login (4-digit)
@@ -72,6 +84,16 @@ A free, web-based Point of Sale system for **The Bunghole Bourbon Lounge** at Bo
 - Tips tracking
 - Void/cancel log with reasons
 - Full audit trail with CSV export
+
+### Compliance & Accountability
+- **21+ ID Verification** — Automatic reminder when alcohol is in cart
+  - Red warning bar: "Alcohol in order — Check ID (21+)"
+  - Staff taps to confirm after checking ID
+  - Blocks checkout until verified
+  - Logged in audit trail
+- **Discount tracking** — All discounts/comps recorded with reason
+- **Signature capture** — Room charges include guest signature
+- **Special item logging** — Off-menu items tracked with price
 
 ---
 
@@ -275,11 +297,12 @@ bunghole-pos-v3/
 ## Data Storage
 
 All data is stored in the browser's localStorage on the iPad:
-- Transactions
+- Transactions (with signatures, discounts, ID checks)
 - Inventory
 - Employees
 - Settings
 - Audit logs
+- Open tabs (running orders)
 
 **Stock tracking:**
 - Each bourbon starts with 10 pours (1 bottle)
