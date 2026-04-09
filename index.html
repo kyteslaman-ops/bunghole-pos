@@ -675,6 +675,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 .cart-discount-row { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: var(--success); }
 
 /* ═══════════════════════════════════════════
+   ID CHECK / AGE VERIFICATION
+   ═══════════════════════════════════════════ */
+.id-check-bar { display: none; margin: 8px; padding: 10px; background: var(--danger-bg); border: 1px solid var(--danger); border-radius: var(--radius-sm); text-align: center; }
+.id-check-bar.show { display: block; }
+.id-check-bar.verified { background: var(--success-bg); border-color: var(--success); }
+.id-check-label { font-size: 11px; font-weight: 600; color: var(--danger); display: flex; align-items: center; justify-content: center; gap: 6px; }
+.id-check-bar.verified .id-check-label { color: var(--success); }
+.id-check-btn { margin-top: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: all var(--transition); }
+.id-check-btn.unchecked { background: var(--danger); color: #fff; }
+.id-check-btn.unchecked:hover { background: #dc2626; }
+.id-check-btn.checked { background: var(--success); color: #fff; }
+
+/* ═══════════════════════════════════════════
    SIGNATURE PAD
    ═══════════════════════════════════════════ */
 .signature-section { margin-top: 12px; }
@@ -935,6 +948,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <div class="totals-row" id="bourbonTaxRow" style="display:none;"><span>Bardstown Liquor Tax</span><span id="cartBourbonTax">$0.00</span></div>
       <div class="totals-row" id="discountRow" style="display:none;color:var(--success);"><span id="discountLabel">Discount</span><span id="cartDiscount">-$0.00</span></div>
       <div class="totals-row grand"><span>Total</span><span id="cartTotal">$0.00</span></div>
+      <div class="id-check-bar" id="idCheckBar">
+        <div class="id-check-label">
+          <span id="idCheckIcon">⚠️</span>
+          <span id="idCheckText">Alcohol in order — Check ID (21+)</span>
+        </div>
+        <button class="id-check-btn unchecked" id="idCheckBtn" onclick="IDCheck.toggle()">Tap to Confirm ID Checked</button>
+      </div>
       <div class="checkout-btns">
         <button class="btn-checkout" id="btnCard" onclick="Cart.openCheckout('card')" disabled>💳 Card</button>
         <button class="btn-checkout cash" id="btnCash" onclick="Cart.openCheckout('cash')" disabled>💵 Cash</button>
@@ -1912,6 +1932,9 @@ const Cart = {
     document.getElementById('cartTotal').textContent = '$' + finalTotal.toFixed(2);
     document.getElementById('btnCard').disabled = !cart.length;
     document.getElementById('btnCash').disabled = !cart.length;
+
+    // Update ID check bar visibility
+    IDCheck.update();
   },
 
   getSubtotalPlusTax() {
@@ -1931,6 +1954,7 @@ const Cart = {
 
   openCheckout(type) {
     if (!cart.length) return;
+    if (!IDCheck.canCheckout()) return; // Require ID check for alcohol
     checkoutType = type;
     const subtotal = Cart.getSubtotalPlusTax();
     document.getElementById('checkoutTitle').textContent = type === 'card' ? '💳 Card' : '💵 Cash';
@@ -1972,6 +1996,7 @@ const Cart = {
 
   openRoomCharge() {
     if (!cart.length) { toast('Add items', 'error'); return; }
+    if (!IDCheck.canCheckout()) return; // Require ID check for alcohol
     selectedRoom = null;
     roomTipAmount = 0;
     document.getElementById('roomAmount').textContent = document.getElementById('cartTotal').textContent;
@@ -2097,6 +2122,7 @@ const Cart = {
       tip: tip || 0,
       total: sub + tax - discountAmt + (tip || 0),
       signature: type === 'room' ? Signature.getData() : null,
+      idChecked: IDCheck.hasAlcohol() ? idVerified : null, // Track ID verification for alcohol orders
       timestamp: new Date().toISOString(),
       date: new Date().toDateString()
     };
@@ -2111,6 +2137,7 @@ const Cart = {
     tipAmount = 0;
     orderDiscount = { percent: 0, reason: '' }; // Clear discount after sale
     signatureData = null; // Clear signature
+    idVerified = false; // Reset ID check for next order
     Cart.render();
     POS.render();
     // Show receipt option (skip for room charges)
@@ -2325,6 +2352,75 @@ const Discount = {
     if (orderDiscount.percent <= 0) return 0;
     const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
     return sub * (orderDiscount.percent / 100);
+  }
+};
+
+/* ═══════════════════════════════════════════
+   ID CHECK / AGE VERIFICATION (21+)
+   ═══════════════════════════════════════════ */
+let idVerified = false;
+
+const IDCheck = {
+  // Categories that require ID check (alcohol)
+  alcoholCats: ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight', 'beer', 'wine'],
+
+  hasAlcohol() {
+    return cart.some(c => {
+      if (c.isSpecial) return false; // Special items don't trigger ID check
+      const p = db.products.find(x => x.id === c.pid);
+      return p && this.alcoholCats.includes(p.category);
+    });
+  },
+
+  update() {
+    const bar = document.getElementById('idCheckBar');
+    const btn = document.getElementById('idCheckBtn');
+    const icon = document.getElementById('idCheckIcon');
+    const text = document.getElementById('idCheckText');
+
+    if (this.hasAlcohol()) {
+      bar.classList.add('show');
+      if (idVerified) {
+        bar.classList.add('verified');
+        btn.className = 'id-check-btn checked';
+        btn.textContent = '✓ ID Verified (21+)';
+        icon.textContent = '✅';
+        text.textContent = 'ID Checked — Guest is 21+';
+      } else {
+        bar.classList.remove('verified');
+        btn.className = 'id-check-btn unchecked';
+        btn.textContent = 'Tap to Confirm ID Checked';
+        icon.textContent = '⚠️';
+        text.textContent = 'Alcohol in order — Check ID (21+)';
+      }
+    } else {
+      bar.classList.remove('show');
+      idVerified = false; // Reset when no alcohol
+    }
+  },
+
+  toggle() {
+    idVerified = !idVerified;
+    this.update();
+    if (idVerified) {
+      logAudit('id_check', 'ID verified (21+)');
+      toast('✓ ID Verified');
+    }
+  },
+
+  reset() {
+    idVerified = false;
+    this.update();
+  },
+
+  canCheckout() {
+    // If no alcohol, always allow. If alcohol, require ID check
+    if (!this.hasAlcohol()) return true;
+    if (!idVerified) {
+      toast('⚠️ Check ID first! (21+)', 'error');
+      return false;
+    }
+    return true;
   }
 };
 
