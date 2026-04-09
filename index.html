@@ -641,6 +641,53 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 .receipt-totals .grand { font-weight: bold; font-size: 14px; margin-top: 6px; }
 .receipt-footer { text-align: center; margin-top: 12px; border-top: 1px dashed #000; padding-top: 8px; font-size: 10px; }
 .receipt-barcode { text-align: center; margin-top: 8px; font-size: 8px; letter-spacing: 2px; }
+
+/* ═══════════════════════════════════════════
+   TABS & SPECIAL ITEMS
+   ═══════════════════════════════════════════ */
+.tab-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+.tab-actions button { flex: 1; font-size: 11px; padding: 8px 4px; }
+.tab-btn-start { background: var(--blue-bg); border: 1px solid rgba(74,127,181,0.4); color: var(--blue); border-radius: var(--radius-sm); }
+.tab-btn-open { background: var(--purple-bg); border: 1px solid rgba(139,92,246,0.3); color: var(--purple); border-radius: var(--radius-sm); position: relative; }
+.tab-badge { position: absolute; top: -4px; right: -4px; background: var(--danger); color: white; font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 10px; }
+.tab-list { max-height: 300px; overflow-y: auto; }
+.tab-card { background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+.tab-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tab-card-name { font-weight: 600; color: var(--amber-300); }
+.tab-card-time { font-size: 10px; color: var(--text-muted); }
+.tab-card-items { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+.tab-card-total { font-family: var(--font-mono); font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+.tab-card-btns { display: flex; gap: 6px; }
+.tab-card-btns button { flex: 1; font-size: 10px; padding: 6px; }
+
+/* ═══════════════════════════════════════════
+   DISCOUNT & COMP
+   ═══════════════════════════════════════════ */
+.discount-bar { display: flex; gap: 4px; margin-bottom: 8px; padding: 0 8px; }
+.discount-btn { flex: 1; font-size: 10px; padding: 6px 4px; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); transition: all var(--transition); }
+.discount-btn:hover { border-color: var(--amber-500); color: var(--amber-300); }
+.discount-btn.active { background: var(--warning-bg); border-color: var(--warning); color: var(--warning); }
+.discount-btn.comp { color: var(--success); }
+.discount-btn.comp:hover { border-color: var(--success); }
+.cart-item.discounted .ci-price { color: var(--success); }
+.cart-item.discounted .ci-original { text-decoration: line-through; color: var(--text-muted); font-size: 10px; margin-right: 6px; }
+.cart-item.comped .ci-name::after { content: ' 🎁 COMP'; font-size: 9px; color: var(--success); }
+.cart-discount-row { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: var(--success); }
+
+/* ═══════════════════════════════════════════
+   SIGNATURE PAD
+   ═══════════════════════════════════════════ */
+.signature-section { margin-top: 12px; }
+.signature-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+.signature-canvas { width: 100%; height: 120px; background: #fff; border-radius: var(--radius-sm); cursor: crosshair; touch-action: none; }
+.signature-clear { font-size: 10px; color: var(--amber-500); cursor: pointer; }
+.signature-line { border-top: 1px solid #999; margin-top: 8px; padding-top: 4px; text-align: center; font-size: 9px; color: #666; }
+
+/* ═══════════════════════════════════════════
+   SPECIAL ITEM BUTTON
+   ═══════════════════════════════════════════ */
+.special-btn { background: var(--purple-bg); border: 1px solid rgba(139,92,246,0.4); color: var(--purple); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; margin-left: 8px; }
+.special-btn:hover { background: rgba(139,92,246,0.2); }
 </style>
 </head>
 <body>
@@ -700,6 +747,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
     <div class="view active" id="view-pos">
       <div class="toolbar">
         <button class="toolbar-btn" id="btn86" onclick="App.toggle86()">86 Mode: OFF</button>
+        <button class="special-btn" onclick="Special.open()">✨ Special</button>
         <div class="search-wrap">
           <span class="search-icon">🔍</span>
           <input type="text" id="searchInput" placeholder="Search menu..." oninput="POS.render()">
@@ -868,6 +916,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <h2>Current Order</h2>
       <small id="cartGuest">Walk-in</small>
     </div>
+    <div class="tab-actions">
+      <button class="tab-btn-start" onclick="Tabs.startTab()">📝 Start Tab</button>
+      <button class="tab-btn-open" onclick="Tabs.openList()">📋 Open Tabs <span class="tab-badge" id="tabCount" style="display:none;">0</span></button>
+    </div>
+    <div class="discount-bar">
+      <button class="discount-btn" onclick="Discount.apply(10)">10%</button>
+      <button class="discount-btn" onclick="Discount.apply(20)">20%</button>
+      <button class="discount-btn" onclick="Discount.custom()">%</button>
+      <button class="discount-btn comp" onclick="Discount.comp()">🎁 Comp</button>
+    </div>
     <div class="cart-body" id="cartBody">
       <div class="cart-empty">Tap items to start</div>
     </div>
@@ -875,6 +933,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <div class="totals-row"><span>Subtotal</span><span id="cartSub">$0.00</span></div>
       <div class="totals-row"><span>Sales Tax</span><span id="cartSalesTax">$0.00</span></div>
       <div class="totals-row" id="bourbonTaxRow" style="display:none;"><span>Bardstown Liquor Tax</span><span id="cartBourbonTax">$0.00</span></div>
+      <div class="totals-row" id="discountRow" style="display:none;color:var(--success);"><span id="discountLabel">Discount</span><span id="cartDiscount">-$0.00</span></div>
       <div class="totals-row grand"><span>Total</span><span id="cartTotal">$0.00</span></div>
       <div class="checkout-btns">
         <button class="btn-checkout" id="btnCard" onclick="Cart.openCheckout('card')" disabled>💳 Card</button>
@@ -960,7 +1019,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
             <span>TOTAL:</span><span id="roomFinalTotal">$0.00</span>
           </div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <!-- Signature Section -->
+        <div class="signature-section">
+          <div class="signature-label">
+            <span>✍️ Guest Signature</span>
+            <span class="signature-clear" onclick="Signature.clear()">Clear</span>
+          </div>
+          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+          <div class="signature-line">Sign above to authorize charge to room</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
           <button class="btn-sm btn-full" onclick="Cart.roomBackStep()" style="padding:14px;flex:1;">← Back</button>
           <button class="btn-sm btn-gold btn-full" onclick="Cart.completeRoomCharge()" style="padding:14px;flex:2;">✓ Accept Charges</button>
         </div>
@@ -1033,6 +1101,56 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         <textarea id="voidNotes" rows="2" placeholder="Additional details..."></textarea>
         <button class="btn-sm btn-danger btn-full" onclick="Cart.confirmVoid()" style="padding:14px;margin-top:8px;">Confirm Cancel</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPECIAL ITEM MODAL -->
+<div class="modal-overlay" id="modalSpecial">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-head"><h2>✨ Special Item</h2><button class="modal-close" onclick="Modal.close('modalSpecial')">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Enter custom item with manual pricing</p>
+      <div class="form-row"><label class="form-label">Item Name</label><input type="text" id="specialName" placeholder="e.g., Rare Pour, Custom Cocktail"></div>
+      <div class="form-row"><label class="form-label">Price $</label><input type="number" id="specialPrice" step="0.01" placeholder="0.00"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Special.add()" style="padding:14px;margin-top:12px;">Add to Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- START TAB MODAL -->
+<div class="modal-overlay" id="modalStartTab">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-head"><h2>📝 Start a Tab</h2><button class="modal-close" onclick="Modal.close('modalStartTab')">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Enter guest name or room to start a running tab</p>
+      <div class="form-row"><label class="form-label">Guest Name / Room</label><input type="text" id="tabGuestName" placeholder="e.g., John, Table 5, Mint Julep Room"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Tabs.create()" style="padding:14px;margin-top:12px;">Start Tab</button>
+    </div>
+  </div>
+</div>
+
+<!-- OPEN TABS MODAL -->
+<div class="modal-overlay" id="modalTabs">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head"><h2>📋 Open Tabs</h2><button class="modal-close" onclick="Modal.close('modalTabs')">&times;</button></div>
+    <div class="modal-body">
+      <div id="tabsList" class="tab-list">
+        <p style="color:var(--text-muted);font-size:12px;text-align:center;">No open tabs</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM DISCOUNT MODAL -->
+<div class="modal-overlay" id="modalDiscount">
+  <div class="modal-box" style="max-width:340px;">
+    <div class="modal-head"><h2>💰 Custom Discount</h2><button class="modal-close" onclick="Modal.close('modalDiscount')">&times;</button></div>
+    <div class="modal-body" style="text-align:center;">
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Enter discount percentage for entire order</p>
+      <div class="form-row"><label class="form-label">Discount %</label><input type="number" id="customDiscountPct" placeholder="15" min="1" max="100"></div>
+      <div class="form-row"><label class="form-label">Reason (required)</label><input type="text" id="discountReason" placeholder="e.g., Manager comp, Loyalty"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Discount.applyCustom()" style="padding:14px;margin-top:12px;">Apply Discount</button>
     </div>
   </div>
 </div>
@@ -1772,11 +1890,26 @@ const Cart = {
     const salesTax = sub * (db.settings.taxRate / 100);
     const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
     const totalTax = salesTax + bourbonTax;
+
+    // Calculate discount
+    const discountAmt = orderDiscount.percent > 0 ? sub * (orderDiscount.percent / 100) : 0;
+    const finalTotal = sub + totalTax - discountAmt;
+
     document.getElementById('cartSub').textContent = '$' + sub.toFixed(2);
     document.getElementById('cartSalesTax').textContent = '$' + salesTax.toFixed(2);
     document.getElementById('cartBourbonTax').textContent = '$' + bourbonTax.toFixed(2);
     document.getElementById('bourbonTaxRow').style.display = bourbonTax > 0 ? 'flex' : 'none';
-    document.getElementById('cartTotal').textContent = '$' + (sub + totalTax).toFixed(2);
+
+    // Show discount row if applicable
+    if (discountAmt > 0) {
+      document.getElementById('discountLabel').textContent = orderDiscount.percent === 100 ? '🎁 COMP' : `Discount (${orderDiscount.percent}%)`;
+      document.getElementById('cartDiscount').textContent = '-$' + discountAmt.toFixed(2);
+      document.getElementById('discountRow').style.display = 'flex';
+    } else {
+      document.getElementById('discountRow').style.display = 'none';
+    }
+
+    document.getElementById('cartTotal').textContent = '$' + finalTotal.toFixed(2);
     document.getElementById('btnCard').disabled = !cart.length;
     document.getElementById('btnCash').disabled = !cart.length;
   },
@@ -1790,7 +1923,10 @@ const Cart = {
     }, 0);
     const salesTax = sub * (db.settings.taxRate / 100);
     const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
-    return sub + salesTax + bourbonTax;
+
+    // Apply discount
+    const discountAmt = orderDiscount.percent > 0 ? sub * (orderDiscount.percent / 100) : 0;
+    return sub + salesTax + bourbonTax - discountAmt;
   },
 
   openCheckout(type) {
@@ -1885,6 +2021,9 @@ const Cart = {
     document.querySelectorAll('#roomStep2 .tip-btn').forEach((btn, i) => btn.classList.toggle('selected', i === 2));
     document.getElementById('roomCustomTip').value = '';
     Cart.updateRoomTipDisplay();
+
+    // Initialize signature pad
+    setTimeout(() => Signature.init(), 100);
   },
 
   roomBackStep() {
@@ -1918,7 +2057,9 @@ const Cart = {
   },
 
   processSale(type, roomId, tip = 0) {
+    // Deduct stock (skip special items which have no real product)
     cart.forEach(c => {
+      if (c.isSpecial) return; // Skip special items
       const p = db.products.find(x => x.id === c.pid);
       if (p) p.stock = Math.max(0, p.stock - c.qty);
     });
@@ -1926,12 +2067,17 @@ const Cart = {
     // Calculate bourbon tax (only on liquor items)
     const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
     const bourbonSub = cart.reduce((s, c) => {
+      if (c.isSpecial) return s; // Special items don't get bourbon tax
       const p = db.products.find(x => x.id === c.pid);
       return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
     }, 0);
     const salesTax = sub * (db.settings.taxRate / 100);
     const bourbonTax = bourbonSub * ((db.settings.bourbonTaxRate || 0) / 100);
     const tax = salesTax + bourbonTax;
+
+    // Calculate discount
+    const discountAmt = orderDiscount.percent > 0 ? sub * (orderDiscount.percent / 100) : 0;
+
     const room = ROOMS.find(r => r.id === roomId);
     const tx = {
       id: uid(),
@@ -1941,25 +2087,327 @@ const Cart = {
       employee: currentEmployee?.name || 'Unknown',
       employeeId: currentEmployee?.id || null,
       items: cart.map(c => ({ ...c })),
-      subtotal: sub, tax, salesTax, bourbonTax, tip: tip || 0, total: sub + tax + (tip || 0),
+      subtotal: sub,
+      tax,
+      salesTax,
+      bourbonTax,
+      discount: discountAmt,
+      discountPercent: orderDiscount.percent,
+      discountReason: orderDiscount.reason,
+      tip: tip || 0,
+      total: sub + tax - discountAmt + (tip || 0),
+      signature: type === 'room' ? Signature.getData() : null,
       timestamp: new Date().toISOString(),
       date: new Date().toDateString()
     };
     if (type === 'room') db.roomCharges.push(tx);
     else db.transactions.push(tx);
-    logAudit('sale', `${type === 'room' ? 'Room ' + room?.name : type} sale: $${tx.total.toFixed(2)}`);
+    logAudit('sale', `${type === 'room' ? 'Room ' + room?.name : type} sale: $${tx.total.toFixed(2)}${discountAmt > 0 ? ` (${orderDiscount.percent}% off)` : ''}`);
     saveDB();
     toast(type === 'room' ? `Posted to ${room?.name}` : 'Payment recorded');
     // Store last transaction for receipt
     lastTransaction = tx;
     cart = [];
     tipAmount = 0;
+    orderDiscount = { percent: 0, reason: '' }; // Clear discount after sale
+    signatureData = null; // Clear signature
     Cart.render();
     POS.render();
     // Show receipt option (skip for room charges)
     if (type !== 'room') {
       Receipt.show(tx);
     }
+  }
+};
+
+/* ═══════════════════════════════════════════
+   SPECIAL ITEMS (Manual Price Entry)
+   ═══════════════════════════════════════════ */
+const Special = {
+  open() {
+    document.getElementById('specialName').value = '';
+    document.getElementById('specialPrice').value = '';
+    Modal.open('modalSpecial');
+  },
+
+  add() {
+    const name = document.getElementById('specialName').value.trim();
+    const price = parseFloat(document.getElementById('specialPrice').value);
+    if (!name) { toast('Enter item name', 'error'); return; }
+    if (!price || price <= 0) { toast('Enter valid price', 'error'); return; }
+
+    // Add to cart as special item (no product ID, custom category)
+    cart.push({
+      cid: uid(),
+      pid: 'special_' + uid(),
+      name: '✨ ' + name,
+      basePrice: price,
+      mod: null,
+      extra: 0,
+      qty: 1,
+      isSpecial: true
+    });
+    Cart.render();
+    logAudit('special', `Special item: ${name} @ $${price.toFixed(2)}`);
+    Modal.close('modalSpecial');
+    toast(`Added: ${name}`);
+  }
+};
+
+/* ═══════════════════════════════════════════
+   TABS (Running Orders)
+   ═══════════════════════════════════════════ */
+let openTabs = [];
+
+const Tabs = {
+  init() {
+    openTabs = JSON.parse(localStorage.getItem('bunghole_tabs') || '[]');
+    Tabs.updateBadge();
+  },
+
+  save() {
+    localStorage.setItem('bunghole_tabs', JSON.stringify(openTabs));
+    Tabs.updateBadge();
+  },
+
+  updateBadge() {
+    const badge = document.getElementById('tabCount');
+    if (openTabs.length > 0) {
+      badge.textContent = openTabs.length;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+  },
+
+  startTab() {
+    if (!cart.length) { toast('Add items first', 'error'); return; }
+    document.getElementById('tabGuestName').value = '';
+    Modal.open('modalStartTab');
+  },
+
+  create() {
+    const guestName = document.getElementById('tabGuestName').value.trim();
+    if (!guestName) { toast('Enter guest name', 'error'); return; }
+
+    const tab = {
+      id: uid(),
+      guest: guestName,
+      items: [...cart],
+      startTime: new Date().toISOString(),
+      employee: currentEmployee?.name || 'Unknown'
+    };
+    openTabs.push(tab);
+    Tabs.save();
+
+    document.getElementById('cartGuest').textContent = guestName;
+    cart = [];
+    Cart.render();
+    logAudit('tab_open', `Tab started: ${guestName}`);
+    Modal.close('modalStartTab');
+    toast(`Tab started: ${guestName}`);
+  },
+
+  openList() {
+    Tabs.renderList();
+    Modal.open('modalTabs');
+  },
+
+  renderList() {
+    if (!openTabs.length) {
+      document.getElementById('tabsList').innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;padding:20px;">No open tabs</p>';
+      return;
+    }
+    document.getElementById('tabsList').innerHTML = openTabs.map(tab => {
+      const total = tab.items.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
+      const time = new Date(tab.startTime);
+      const timeStr = time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      const itemCount = tab.items.reduce((s, c) => s + c.qty, 0);
+      return `
+        <div class="tab-card">
+          <div class="tab-card-head">
+            <span class="tab-card-name">${tab.guest}</span>
+            <span class="tab-card-time">${timeStr}</span>
+          </div>
+          <div class="tab-card-items">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${tab.employee}</div>
+          <div class="tab-card-total">$${total.toFixed(2)}</div>
+          <div class="tab-card-btns">
+            <button class="btn-sm" onclick="Tabs.addTo('${tab.id}')">+ Add</button>
+            <button class="btn-sm btn-gold" onclick="Tabs.close('${tab.id}')">💳 Close</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  addTo(tabId) {
+    const tab = openTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    // Load tab items into cart
+    cart = [...tab.items];
+    document.getElementById('cartGuest').textContent = tab.guest;
+    Cart.render();
+
+    // Remove the tab (will be re-created when they start tab again, or closed out)
+    openTabs = openTabs.filter(t => t.id !== tabId);
+    Tabs.save();
+    Modal.close('modalTabs');
+    toast(`Loaded tab: ${tab.guest}`);
+  },
+
+  close(tabId) {
+    const tab = openTabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    // Load tab items into cart and go to checkout
+    cart = [...tab.items];
+    document.getElementById('cartGuest').textContent = tab.guest;
+    Cart.render();
+
+    // Remove from open tabs
+    openTabs = openTabs.filter(t => t.id !== tabId);
+    Tabs.save();
+    logAudit('tab_close', `Tab closed: ${tab.guest}`);
+    Modal.close('modalTabs');
+    toast(`Closing tab: ${tab.guest}`);
+  }
+};
+
+/* ═══════════════════════════════════════════
+   DISCOUNTS & COMPS
+   ═══════════════════════════════════════════ */
+let orderDiscount = { percent: 0, reason: '' };
+
+const Discount = {
+  apply(percent) {
+    if (!cart.length) { toast('Add items first', 'error'); return; }
+    orderDiscount = { percent, reason: `${percent}% discount` };
+    Cart.render();
+    logAudit('discount', `Applied ${percent}% discount`);
+    toast(`${percent}% discount applied`);
+  },
+
+  custom() {
+    if (!cart.length) { toast('Add items first', 'error'); return; }
+    document.getElementById('customDiscountPct').value = '';
+    document.getElementById('discountReason').value = '';
+    Modal.open('modalDiscount');
+  },
+
+  applyCustom() {
+    const pct = parseInt(document.getElementById('customDiscountPct').value);
+    const reason = document.getElementById('discountReason').value.trim();
+    if (!pct || pct < 1 || pct > 100) { toast('Enter 1-100%', 'error'); return; }
+    if (!reason) { toast('Enter reason', 'error'); return; }
+
+    orderDiscount = { percent: pct, reason };
+    Cart.render();
+    logAudit('discount', `Applied ${pct}% discount: ${reason}`);
+    Modal.close('modalDiscount');
+    toast(`${pct}% discount applied`);
+  },
+
+  comp() {
+    if (!cart.length) { toast('Add items first', 'error'); return; }
+    orderDiscount = { percent: 100, reason: 'Manager comp' };
+    Cart.render();
+    logAudit('comp', 'Order comped');
+    toast('🎁 Order comped!');
+  },
+
+  clear() {
+    orderDiscount = { percent: 0, reason: '' };
+    Cart.render();
+  },
+
+  getAmount() {
+    if (orderDiscount.percent <= 0) return 0;
+    const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
+    return sub * (orderDiscount.percent / 100);
+  }
+};
+
+/* ═══════════════════════════════════════════
+   SIGNATURE PAD
+   ═══════════════════════════════════════════ */
+let signatureData = null;
+
+const Signature = {
+  ctx: null,
+  canvas: null,
+  isDrawing: false,
+  lastX: 0,
+  lastY: 0,
+
+  init() {
+    const canvas = document.getElementById('signatureCanvas');
+    if (!canvas) return;
+
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    // Clear and set up
+    this.clear();
+
+    // Mouse events
+    canvas.addEventListener('mousedown', (e) => this.startDraw(e));
+    canvas.addEventListener('mousemove', (e) => this.draw(e));
+    canvas.addEventListener('mouseup', () => this.stopDraw());
+    canvas.addEventListener('mouseleave', () => this.stopDraw());
+
+    // Touch events
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); this.startDraw(e.touches[0]); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); this.draw(e.touches[0]); });
+    canvas.addEventListener('touchend', () => this.stopDraw());
+  },
+
+  startDraw(e) {
+    this.isDrawing = true;
+    const rect = this.canvas.getBoundingClientRect();
+    this.lastX = e.clientX - rect.left;
+    this.lastY = e.clientY - rect.top;
+  },
+
+  draw(e) {
+    if (!this.isDrawing) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(this.lastX, this.lastY);
+    this.ctx.lineTo(x, y);
+    this.ctx.strokeStyle = '#000';
+    this.ctx.lineWidth = 2;
+    this.ctx.lineCap = 'round';
+    this.ctx.stroke();
+
+    this.lastX = x;
+    this.lastY = y;
+  },
+
+  stopDraw() {
+    this.isDrawing = false;
+    if (this.canvas) {
+      signatureData = this.canvas.toDataURL('image/png');
+    }
+  },
+
+  clear() {
+    if (!this.ctx || !this.canvas) return;
+    this.ctx.fillStyle = '#fff';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    signatureData = null;
+  },
+
+  getData() {
+    return signatureData;
   }
 };
 
@@ -1994,6 +2442,7 @@ const Receipt = {
         <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
         <div class="row"><span>Sales Tax (${db.settings.taxRate}%):</span><span>$${(tx.salesTax || tx.tax).toFixed(2)}</span></div>
         ${tx.bourbonTax > 0 ? `<div class="row"><span>Bardstown Liq Tax (${db.settings.bourbonTaxRate}%):</span><span>$${tx.bourbonTax.toFixed(2)}</span></div>` : ''}
+        ${tx.discount > 0 ? `<div class="row" style="color:var(--success);"><span>${tx.discountPercent === 100 ? '🎁 COMP' : 'Discount (' + tx.discountPercent + '%)'}:</span><span>-$${tx.discount.toFixed(2)}</span></div>` : ''}
         ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
         <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
       </div>
@@ -2035,6 +2484,7 @@ const Receipt = {
         <div class="row"><span>Subtotal:</span><span>$${tx.subtotal.toFixed(2)}</span></div>
         <div class="row"><span>Sales Tax (${db.settings.taxRate}%):</span><span>$${(tx.salesTax || tx.tax).toFixed(2)}</span></div>
         ${tx.bourbonTax > 0 ? `<div class="row"><span>Bardstown Liq Tax (${db.settings.bourbonTaxRate}%):</span><span>$${tx.bourbonTax.toFixed(2)}</span></div>` : ''}
+        ${tx.discount > 0 ? `<div class="row"><span>${tx.discountPercent === 100 ? 'COMP' : 'Discount (' + tx.discountPercent + '%)'}:</span><span>-$${tx.discount.toFixed(2)}</span></div>` : ''}
         ${tx.tip > 0 ? `<div class="row"><span>Tip:</span><span>$${tx.tip.toFixed(2)}</span></div>` : ''}
         <div class="row grand"><span>TOTAL:</span><span>$${tx.total.toFixed(2)}</span></div>
         <div class="row" style="margin-top:8px;"><span>Payment:</span><span>${tx.type === 'card' ? 'Card' : 'Cash'}</span></div>
@@ -2082,6 +2532,7 @@ const Receipt = {
     text += `Subtotal: $${tx.subtotal.toFixed(2)}\n`;
     text += `Sales Tax (${db.settings.taxRate}%): $${(tx.salesTax || tx.tax).toFixed(2)}\n`;
     if (tx.bourbonTax > 0) text += `Bardstown Liq Tax (${db.settings.bourbonTaxRate}%): $${tx.bourbonTax.toFixed(2)}\n`;
+    if (tx.discount > 0) text += `${tx.discountPercent === 100 ? '🎁 COMP' : 'Discount (' + tx.discountPercent + '%)'}: -$${tx.discount.toFixed(2)}\n`;
     if (tx.tip > 0) text += `Tip: $${tx.tip.toFixed(2)}\n`;
     text += `────────────────\n`;
     text += `TOTAL: $${tx.total.toFixed(2)}\n`;
@@ -2597,6 +3048,7 @@ function toast(msg, type = 'success') {
 
 /* BOOT */
 App.init();
+Tabs.init();
 </script>
 </body>
 </html>
