@@ -190,9 +190,46 @@ When selecting a bourbon, the customer chooses their pour size. Prices are **pro
 | Pappy 15yr | $700 | $210 |
 | Pappy 20yr | $1100 | $330 |
 
+### Cocktails (37 drinks)
+
+#### Bourbon Classics
+| Cocktail | Price | | Cocktail | Price |
+|----------|-------|---|----------|-------|
+| 🥃 Old Fashioned | $14 | | 🌿 Mint Julep | $13 |
+| 🍒 Manhattan | $14 | | 🍋 Whiskey Sour | $12 |
+| 🍊 Boulevardier | $14 | | ⚜️ Sazerac | $14 |
+| 🫐 Bourbon Smash | $13 | | 🍯 Gold Rush | $13 |
+| 🍷 New York Sour | $14 | | ✈️ Paper Plane | $14 |
+| 🎩 Brown Derby | $13 | | ☕ Hot Toddy | $11 |
+| 🍋 Lynchburg Lemonade | $12 | | 🚗 Bourbon Sidecar | $13 |
+| 8️⃣ Ward 8 | $13 | | 🔫 Revolver | $14 |
+| 🎖️ Kentucky Colonel | $12 | | 🥂 Seelbach | $15 |
+| 🦁 Lion's Tail | $13 | | | |
+
+#### Mules & Refreshers
+| Cocktail | Price | | Cocktail | Price |
+|----------|-------|---|----------|-------|
+| 🫚 Kentucky Mule | $12 | | 🥒 Moscow Mule | $12 |
+| 🐴 Bourbon Mule | $12 | | 🌿 Mojito | $12 |
+| 🧂 Margarita | $12 | | 🍊 Paloma | $12 |
+| 🍓 Daiquiri | $12 | | 🥥 Piña Colada | $13 |
+
+#### Classics & Martinis
+| Cocktail | Price | | Cocktail | Price |
+|----------|-------|---|----------|-------|
+| ☕ Espresso Martini | $14 | | 🩷 Cosmopolitan | $13 |
+| 🔴 Negroni | $14 | | 🏝️ Long Island | $14 |
+| 🥂 French 75 | $14 | | 🫒 Dirty Martini | $13 |
+| 🧡 Aperol Spritz | $13 | | | |
+
+#### Simple Pours
+| Cocktail | Price | | Cocktail | Price |
+|----------|-------|---|----------|-------|
+| 🫧 Gin & Tonic | $11 | | 💧 Vodka Soda | $10 |
+| 🥤 Rum & Coke | $10 | | | |
+
 ### Other Categories
-- **Cocktails** — Old Fashioned, Manhattan, Mint Julep, Whiskey Sour, Kentucky Mule, and more
-- **Flights** — Kentucky Classics, Buffalo Trace Family, Weller Journey, Premium Explorer
+- **Flights** — Kentucky Classics, Buffalo Trace Family, Weller Journey, Premium Explorer, Age Statement
 - **Beer** — Modelo, Bud Light, Michelob Ultra, Corona, Coors Light, Miller Lite, KY Bourbon Barrel Ale
 - **Wine** — House Cab, Chardonnay, Pinot Grigio, Prosecco, Champagne
 - **Snacks** — Bourbon Pecans, Charcuterie, Pretzel Bites, Bourbon Balls
