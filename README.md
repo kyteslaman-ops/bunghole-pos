@@ -362,7 +362,40 @@ All data is stored in the browser's localStorage on the iPad:
 
 **GitHub:** https://github.com/kyteslaman-ops/bunghole-pos
 
-**To make changes:** Open Terminal → type `pos` → tell Claude what you need
+---
+
+## How to Resume Working on the POS
+
+### Quick Start (if `pos` alias is set up)
+```bash
+pos
+```
+
+### Manual Start
+```bash
+cd ~/Downloads/bunghole-pos-v3
+claude
+```
+
+### Then tell Claude what you need:
+- "Add a new cocktail called XYZ for $12"
+- "Change the price of Old Fashioned to $15"
+- "Add a new category for shots"
+- "Fix the receipt layout"
+- etc.
+
+### Deploy Changes
+After Claude makes changes:
+```bash
+npx wrangler deploy
+```
+
+### Set Up the `pos` Shortcut (one-time)
+Add this to your `~/.zshrc` or `~/.bashrc`:
+```bash
+alias pos='cd ~/Downloads/bunghole-pos-v3 && claude'
+```
+Then run `source ~/.zshrc` to activate.
 
 ---
 
@@ -372,4 +405,4 @@ Private project for The Bunghole Bourbon Lounge at BourbonManor.com
 
 ---
 
-*Built with Claude Code — April 2026*
+*Built with Claude Code (Opus 4.6) — April 2026*
