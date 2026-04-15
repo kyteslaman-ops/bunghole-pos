@@ -808,7 +808,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 
     <!-- REPORTS VIEW -->
     <div class="view" id="view-reports">
-      <div class="view-header"><div class="view-title">Daily Report</div></div>
+      <div class="view-header">
+        <div class="view-title">Daily Report</div>
+        <button class="btn-sm btn-gold" onclick="App.zReport()">📊 Z-Report</button>
+      </div>
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-val" id="rptRevenue">$0</div><div class="kpi-label">Revenue</div></div>
         <div class="kpi-card"><div class="kpi-val" id="rptTips">$0</div><div class="kpi-label">Tips</div></div>
@@ -905,9 +908,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn-sm btn-gold btn-full" onclick="Settings.save()" style="padding:12px;">Save Settings</button>
-        <button class="btn-sm btn-full" onclick="App.backup()" style="padding:12px;">Export JSON</button>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn-sm btn-gold btn-full" onclick="Settings.save()" style="padding:12px;flex:1;">Save Settings</button>
+        <button class="btn-sm btn-full" onclick="App.backup()" style="padding:12px;flex:1;">💾 Export</button>
+        <button class="btn-sm btn-full" onclick="App.restore()" style="padding:12px;flex:1;">📥 Restore</button>
       </div>
 
       <div class="settings-section" style="background:var(--bg-elevated);border:1px solid var(--amber-500);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
@@ -1244,6 +1248,8 @@ let db = {
   settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' }
 };
 
+const CATALOG_VERSION = 2; // bump when seedData adds new defaults
+
 function loadDB() {
   try {
     const s = localStorage.getItem(DB_KEY);
@@ -1253,8 +1259,28 @@ function loadDB() {
       if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }];
       if (!db.voidedSales) db.voidedSales = [];
       if (!db.auditLog) db.auditLog = [];
+      if (db.catalogVersion == null) db.catalogVersion = 0;
     }
   } catch(e) { console.error(e); }
+}
+
+// Merge any seedData items missing from db.products by name (case-insensitive).
+// Runs every load so menu additions reach existing installs without overwriting edits.
+function mergeCatalog() {
+  if (db.catalogVersion >= CATALOG_VERSION) return 0;
+  const seeds = App.getSeeds ? App.getSeeds() : [];
+  const existing = new Set(db.products.map(p => p.name.toLowerCase()));
+  let added = 0;
+  seeds.forEach(s => {
+    if (!existing.has(s.name.toLowerCase())) {
+      db.products.push({ ...s, id: uid(), eightySixed: false });
+      added++;
+    }
+  });
+  db.catalogVersion = CATALOG_VERSION;
+  saveDB();
+  if (added > 0) logAudit('inventory', `Catalog v${CATALOG_VERSION}: merged ${added} new items`);
+  return added;
 }
 function saveDB() {
   // Keep audit log under 2000 entries
@@ -1263,8 +1289,43 @@ function saveDB() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
 
+// HTML-escape user-controlled strings before injecting into innerHTML
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// SHA-256 hash for PINs (with per-install salt). Stored hashes look like "h:<hex>".
+let PIN_SALT = localStorage.getItem('bunghole_pin_salt');
+if (!PIN_SALT) {
+  PIN_SALT = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+  localStorage.setItem('bunghole_pin_salt', PIN_SALT);
+}
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(PIN_SALT + ':' + pin);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return 'h:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function migrateEmployeePins() {
+  let changed = false;
+  for (const e of db.employees) {
+    if (e.pin && !String(e.pin).startsWith('h:')) {
+      e.pin = await hashPin(e.pin);
+      changed = true;
+    }
+  }
+  if (changed) saveDB();
+}
+
 let currentEmployee = null;
 let voidReason = '';
+let lastSale = null;       // { tx, type, expiresAt } — last completed sale, for 60s undo
+let lastSaleTimer = null;
 
 /* ═══════════════════════════════════════════
    AUDIT LOG
@@ -1288,9 +1349,9 @@ const Audit = {
     if (filter !== 'all') logs = logs.filter(l => l.type === filter);
     document.getElementById('auditBody').innerHTML = logs.slice(0, 100).map(l => `<tr>
       <td style="white-space:nowrap;">${new Date(l.timestamp).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-      <td>${l.employee}</td>
-      <td><span class="badge badge-${l.type === 'void' ? 'danger' : l.type === 'sale' ? 'success' : l.type === 'login' ? 'blue' : 'warning'}">${l.type}</span></td>
-      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${l.details}</td>
+      <td>${esc(l.employee)}</td>
+      <td><span class="badge badge-${l.type === 'void' ? 'danger' : l.type === 'sale' ? 'success' : l.type === 'login' ? 'blue' : 'warning'}">${esc(l.type)}</span></td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${esc(l.details)}</td>
     </tr>`).join('');
   },
 
@@ -1319,9 +1380,12 @@ const P = {
     if (P.code.length === 4) setTimeout(() => P.submit(), 150);
   },
   clear() { P.code = ''; P.updateDots(); },
-  submit() {
-    const emp = db.employees.find(e => e.pin === P.code && e.active !== false);
+  async submit() {
+    const tryHash = await hashPin(P.code);
+    const emp = db.employees.find(e => (e.pin === tryHash || e.pin === P.code) && e.active !== false);
     if (emp) {
+      // upgrade plaintext PIN to hash on successful match
+      if (emp.pin === P.code) { emp.pin = tryHash; saveDB(); }
       currentEmployee = emp;
       document.getElementById('lockScreen').classList.add('hidden');
       App.updateEmployeeBadge();
@@ -1331,7 +1395,7 @@ const P = {
       logAudit('login', `${emp.name} logged in`);
       toast(`Welcome, ${emp.name}!`);
     } else {
-      logAudit('login', `Failed login attempt: ${P.code}`);
+      logAudit('login', 'Failed login attempt');
       toast('Invalid PIN', 'error');
       document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
       setTimeout(() => { P.code = ''; P.updateDots(); }, 500);
@@ -1353,17 +1417,25 @@ const App = {
 
   init() {
     loadDB();
-    if (!db.products.length) App.seedData();
+    if (!db.products.length) {
+      App.seedData();
+      db.catalogVersion = CATALOG_VERSION;
+      saveDB();
+    } else {
+      mergeCatalog();
+    }
+    migrateEmployeePins();
     POS.renderCats();
     POS.render();
     App.startClock();
+    App.bindShortcuts();
     document.getElementById('setTax').value = db.settings.taxRate;
     document.getElementById('setBourbonTax').value = db.settings.bourbonTaxRate || 7.5;
     document.getElementById('setName').value = db.settings.name;
   },
 
-  seedData() {
-    const seeds = [
+  getSeeds() {
+    return [
       // ═══ TOP 20 BOURBON COCKTAILS (National Avg Prices) ═══
       { name:'Old Fashioned', category:'cocktail', price:14, stock:99, alert:1, emoji:'🥃' },
       { name:'Mint Julep', category:'cocktail', price:13, stock:99, alert:1, emoji:'🌿' },
@@ -1534,7 +1606,10 @@ const App = {
       { name:'Ginger Beer', category:'mixer', price:4, stock:36, alert:8, emoji:'🫚' },
       { name:'Extra Ice', category:'mixer', price:0, stock:99, alert:1, emoji:'🧊' }
     ];
-    seeds.forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false }));
+  },
+
+  seedData() {
+    App.getSeeds().forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false }));
     saveDB();
   },
 
@@ -1603,6 +1678,127 @@ const App = {
     const tick = () => { el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
     tick();
     setInterval(tick, 30000);
+  },
+
+  restore() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!confirm(`Restore from "${file.name}"? This OVERWRITES all current data.`)) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const restored = JSON.parse(ev.target.result);
+          if (!restored.products || !restored.employees) throw new Error('Invalid backup file');
+          localStorage.setItem(DB_KEY, JSON.stringify(restored));
+          logAudit('settings', `Restored backup: ${file.name}`);
+          toast('Restored — reloading…');
+          setTimeout(() => location.reload(), 800);
+        } catch(err) {
+          toast('Invalid backup file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  },
+
+  // 60-second undo for the last completed sale
+  stashLastSale(tx, type) {
+    lastSale = { tx, type, expiresAt: Date.now() + 60000 };
+    clearTimeout(lastSaleTimer);
+    lastSaleTimer = setTimeout(() => { lastSale = null; App.renderUndoBanner(); }, 60000);
+    App.renderUndoBanner();
+  },
+  renderUndoBanner() {
+    let bar = document.getElementById('undoBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'undoBar';
+      bar.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--warning);color:#000;padding:10px 16px;border-radius:8px;font-weight:600;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.4);display:none;align-items:center;gap:12px;';
+      document.body.appendChild(bar);
+    }
+    if (!lastSale) { bar.style.display = 'none'; return; }
+    const secs = Math.max(0, Math.ceil((lastSale.expiresAt - Date.now()) / 1000));
+    bar.innerHTML = `Sale $${lastSale.tx.total.toFixed(2)} • ${secs}s <button onclick="App.undoLastSale()" style="background:#000;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-weight:700;cursor:pointer;">UNDO</button>`;
+    bar.style.display = 'flex';
+  },
+  undoLastSale() {
+    if (!lastSale) return;
+    const { tx, type } = lastSale;
+    if (type === 'room') db.roomCharges = db.roomCharges.filter(t => t.id !== tx.id);
+    else db.transactions = db.transactions.filter(t => t.id !== tx.id);
+    // Restore stock
+    tx.items.forEach(c => {
+      if (c.isSpecial) return;
+      const p = db.products.find(x => x.id === c.pid);
+      if (p) p.stock += c.qty;
+    });
+    saveDB();
+    logAudit('void', `UNDO sale: $${tx.total.toFixed(2)}`);
+    lastSale = null;
+    clearTimeout(lastSaleTimer);
+    App.renderUndoBanner();
+    POS.render();
+    toast('Sale undone');
+  },
+
+  zReport() {
+    const today = new Date().toDateString();
+    const tx = db.transactions.filter(t => t.date === today);
+    const roomTx = db.roomCharges.filter(t => t.date === today);
+    const all = [...tx, ...roomTx];
+    const sum = (arr, fn) => arr.reduce((s, t) => s + fn(t), 0);
+    const byEmp = {};
+    all.forEach(t => { const k = t.employee || 'Unknown'; (byEmp[k] = byEmp[k] || { total: 0, count: 0, tips: 0 }); byEmp[k].total += t.total; byEmp[k].count++; byEmp[k].tips += t.tip || 0; });
+    const byCat = {};
+    all.forEach(t => t.items.forEach(i => {
+      const p = db.products.find(x => x.id === i.pid);
+      const cat = p?.category || 'other';
+      const amt = (i.basePrice + i.extra) * i.qty;
+      byCat[cat] = (byCat[cat] || 0) + amt;
+    }));
+    const card = sum(tx.filter(t => t.type === 'card'), t => t.total);
+    const cash = sum(tx.filter(t => t.type === 'cash'), t => t.total);
+    const room = sum(roomTx, t => t.total);
+    const voids = db.voidedSales.filter(v => v.date === today);
+    const voidTotal = sum(voids, v => v.total);
+    let html = `<div style="font-family:var(--font-mono);font-size:13px;line-height:1.7;">`;
+    html += `<h3 style="font-family:var(--font-display);color:var(--amber-300);margin-bottom:8px;">Z-Report — ${esc(today)}</h3>`;
+    html += `<div><strong>Revenue:</strong> $${sum(all, t => t.total).toFixed(2)}</div>`;
+    html += `<div>Card: $${card.toFixed(2)} • Cash: $${cash.toFixed(2)} • Room: $${room.toFixed(2)}</div>`;
+    html += `<div>Tips: $${sum(all, t => t.tip || 0).toFixed(2)} • Tx: ${all.length} • Items: ${sum(all, t => t.items.reduce((a, b) => a + b.qty, 0))}</div>`;
+    html += `<div style="color:var(--danger);">Voids: ${voids.length} ($${voidTotal.toFixed(2)})</div>`;
+    html += `<hr style="border-color:var(--border-subtle);margin:10px 0;"><strong>By Employee</strong>`;
+    Object.entries(byEmp).forEach(([n, v]) => { html += `<div>${esc(n)}: $${v.total.toFixed(2)} (${v.count} tx, $${v.tips.toFixed(2)} tips)</div>`; });
+    html += `<hr style="border-color:var(--border-subtle);margin:10px 0;"><strong>By Category</strong>`;
+    Object.entries(byCat).sort((a, b) => b[1] - a[1]).forEach(([c, v]) => { html += `<div>${esc(c)}: $${v.toFixed(2)}</div>`; });
+    html += `</div>`;
+    const win = window.open('', '_blank', 'width=480,height=720');
+    win.document.write(`<title>Z-Report</title><body style="background:#1a110c;color:#f0e6d6;padding:20px;">${html}<button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#c8922a;color:#000;border:0;border-radius:6px;font-weight:700;cursor:pointer;">Print</button></body>`);
+  },
+
+  bindShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+        return;
+      }
+      if (inField) return;
+      if (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        const s = document.getElementById('searchInput');
+        if (s) s.focus();
+      } else if (e.key === 'Enter' && App.currentView === 'pos' && cart.length) {
+        document.getElementById('btnCard')?.click();
+      } else if (e.key === 'u' && lastSale) {
+        App.undoLastSale();
+      }
+    });
   }
 };
 
@@ -1613,9 +1809,9 @@ const Employees = {
   render() {
     document.getElementById('employeeList').innerHTML = db.employees.map(emp => `
       <div class="employee-row ${emp.active === false ? 'disabled' : ''}">
-        <span class="name">${emp.name}</span>
-        <span class="role ${emp.role}">${emp.role}</span>
-        <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:11px;">${emp.pin}</span>
+        <span class="name">${esc(emp.name)}</span>
+        <span class="role ${esc(emp.role)}">${esc(emp.role)}</span>
+        <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:11px;">••••</span>
         <button class="btn-sm" onclick="Employees.edit('${emp.id}')" style="background:var(--blue);border-color:var(--blue);">Edit</button>
         ${emp.id !== 'emp_owner' ? `
           <button class="btn-sm" onclick="Employees.toggle('${emp.id}')">${emp.active !== false ? 'Disable' : 'Enable'}</button>
@@ -1632,7 +1828,7 @@ const Employees = {
     const newName = prompt('Edit name:', emp.name);
     if (newName === null) return; // cancelled
 
-    const newPin = prompt('Edit 4-digit PIN:', emp.pin);
+    const newPin = prompt('Enter new 4-digit PIN:', '');
     if (newPin === null) return; // cancelled
 
     if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
@@ -1641,23 +1837,24 @@ const Employees = {
     }
 
     // Check if PIN is used by another employee
-    const pinInUse = db.employees.find(e => e.pin === newPin && e.id !== id);
-    if (pinInUse) {
-      toast('PIN already in use by ' + pinInUse.name, 'error');
-      return;
-    }
-
-    const oldName = emp.name;
-    const oldPin = emp.pin;
-    emp.name = newName.trim() || emp.name;
-    emp.pin = newPin;
-    saveDB();
-    logAudit('employee', `Edited ${oldName}: name→${emp.name}, PIN→${emp.pin}`);
-    Employees.render();
-    toast(`${emp.name} updated`);
+    (async () => {
+      const newPinHash = await hashPin(newPin);
+      const pinInUse = db.employees.find(e => e.pin === newPinHash && e.id !== id);
+      if (pinInUse) {
+        toast('PIN already in use by ' + pinInUse.name, 'error');
+        return;
+      }
+      const oldName = emp.name;
+      emp.name = newName.trim() || emp.name;
+      emp.pin = newPinHash;
+      saveDB();
+      logAudit('employee', `Edited ${oldName}: name→${emp.name}, PIN updated`);
+      Employees.render();
+      toast(`${emp.name} updated`);
+    })();
   },
 
-  add() {
+  async add() {
     const name = document.getElementById('newEmpName').value.trim();
     const pin = document.getElementById('newEmpPin').value.trim();
     const role = document.getElementById('newEmpRole').value;
@@ -1665,11 +1862,12 @@ const Employees = {
       toast('Name + 4-digit PIN required', 'error');
       return;
     }
-    if (db.employees.find(e => e.pin === pin)) {
+    const pinHash = await hashPin(pin);
+    if (db.employees.find(e => e.pin === pinHash)) {
       toast('PIN already in use', 'error');
       return;
     }
-    db.employees.push({ id: uid(), name, pin, role, active: true });
+    db.employees.push({ id: uid(), name, pin: pinHash, role, active: true });
     saveDB();
     logAudit('employee', `Added employee: ${name} (${role})`);
     document.getElementById('newEmpName').value = '';
@@ -1711,11 +1909,11 @@ const POS = {
     const bar = document.getElementById('catBar');
     let h = `<button class="cat-chip ${currentCat === 'all' ? 'active' : ''}" onclick="currentCat='all';POS.renderCats();POS.render();">All</button>`;
     db.categories.forEach(c => {
-      h += `<button class="cat-chip ${currentCat === c.id ? 'active' : ''}" onclick="currentCat='${c.id}';POS.renderCats();POS.render();">${c.icon} ${c.name}</button>`;
+      h += `<button class="cat-chip ${currentCat === c.id ? 'active' : ''}" onclick="currentCat='${c.id}';POS.renderCats();POS.render();">${esc(c.icon)} ${esc(c.name)}</button>`;
     });
     bar.innerHTML = h;
     const sel = document.getElementById('addCat');
-    if (sel) sel.innerHTML = db.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    if (sel) sel.innerHTML = db.categories.map(c => `<option value="${c.id}">${esc(c.icon)} ${esc(c.name)}</option>`).join('');
   },
 
   render() {
@@ -1736,8 +1934,8 @@ const POS = {
       return `<div class="product-card ${p.eightySixed ? 'is-86' : ''}" onclick="POS.tap('${p.id}')">
         ${p.eightySixed ? '<div class="badge-86">86</div>' : ''}
         <div class="stock-dot ${isOut ? 'out' : isLow ? 'low' : ''}"></div>
-        <div class="prod-emoji">${emoji}</div>
-        <div class="prod-name">${p.name}</div>
+        <div class="prod-emoji">${esc(emoji)}</div>
+        <div class="prod-name">${esc(p.name)}</div>
         <div class="prod-meta">${p.stock} left</div>
         <div class="prod-price">$${p.price.toFixed(2)}</div>
       </div>`;
@@ -1851,7 +2049,7 @@ const Cart = {
       const price = (c.basePrice + c.extra) * c.qty;
       return `<div class="cart-item ${c.mod ? 'has-mod' : ''}">
         <div class="ci-top">
-          <div><div class="ci-name">${c.name}</div>${c.mod ? `<div class="ci-mod">${c.mod}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}</div>
+          <div><div class="ci-name">${esc(c.name)}</div>${c.mod ? `<div class="ci-mod">${esc(c.mod)}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}</div>
           <div class="ci-price">$${price.toFixed(2)}</div>
         </div>
         <div class="ci-bottom">
@@ -2147,6 +2345,7 @@ const Cart = {
     else db.transactions.push(tx);
     logAudit('sale', `${type === 'room' ? 'Room ' + room?.name : type} sale: $${tx.total.toFixed(2)}${discountAmt > 0 ? ` (${orderDiscount.percent}% off)` : ''}`);
     saveDB();
+    App.stashLastSale(tx, type);
     toast(type === 'room' ? `Posted to ${room?.name}` : 'Payment recorded');
     // Store last transaction for receipt
     lastTransaction = tx;
@@ -2270,10 +2469,10 @@ const Tabs = {
       return `
         <div class="tab-card">
           <div class="tab-card-head">
-            <span class="tab-card-name">${tab.guest}</span>
+            <span class="tab-card-name">${esc(tab.guest)}</span>
             <span class="tab-card-time">${timeStr}</span>
           </div>
-          <div class="tab-card-items">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${tab.employee}</div>
+          <div class="tab-card-items">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${esc(tab.employee)}</div>
           <div class="tab-card-total">$${total.toFixed(2)}</div>
           <div class="tab-card-btns">
             <button class="btn-sm" onclick="Tabs.addTo('${tab.id}')">+ Add</button>
@@ -2537,8 +2736,8 @@ const Receipt = {
 
     // Build receipt preview HTML
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
       return html;
     }).join('');
 
@@ -2578,8 +2777,8 @@ const Receipt = {
     const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
       return html;
     }).join('');
 
@@ -2590,7 +2789,7 @@ const Receipt = {
         <p>714 N 3rd Street</p>
         <p>Bardstown, KY 40004</p>
         <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
-        <p>Server: ${tx.employee}</p>
+        <p>Server: ${esc(tx.employee)}</p>
       </div>
       <div class="receipt-items">${itemsHtml}</div>
       <div class="receipt-totals">
@@ -2730,7 +2929,7 @@ const Inv = {
   render() {
     const catF = document.getElementById('invFilterCat').value;
     const stockF = document.getElementById('invFilterStock').value;
-    document.getElementById('invFilterCat').innerHTML = '<option value="all">All</option>' + db.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('invFilterCat').innerHTML = '<option value="all">All</option>' + db.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     document.getElementById('invFilterCat').value = catF;
     let items = db.products;
     if (catF !== 'all') items = items.filter(p => p.category === catF);
@@ -2741,8 +2940,8 @@ const Inv = {
       const stockClass = p.eightySixed ? 'badge-red-solid' : p.stock <= p.alert ? 'badge-danger' : p.stock <= p.alert * 2 ? 'badge-warning' : 'badge-success';
       const costInfo = p.bottleCost ? `<div style="font-size:10px;color:var(--text-muted);">Cost: $${p.bottleCost} | ${p.markup || 4}×</div>` : '';
       return `<tr>
-        <td><strong>${p.emoji || cat.icon} ${p.name}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}${costInfo}</td>
-        <td>${cat.icon}</td>
+        <td><strong>${esc(p.emoji || cat.icon)} ${esc(p.name)}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}${costInfo}</td>
+        <td>${esc(cat.icon)}</td>
         <td style="font-family:var(--font-mono);">$${p.price.toFixed(2)}</td>
         <td><span class="badge ${stockClass}">${p.stock}</span></td>
         <td style="white-space:nowrap;">
@@ -2799,7 +2998,7 @@ const Inv = {
     document.getElementById('addBottleSize').value = p.bottleSize || 750;
     document.getElementById('addPourSize').value = p.pourSize || 1.5;
     document.getElementById('addMarkup').value = p.markup || 4;
-    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${esc(c.icon)} ${esc(c.name)}</option>`).join('');
     Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
@@ -2843,7 +3042,7 @@ const Inv = {
     document.getElementById('addPourSize').value = '1.5';
     document.getElementById('addMarkup').value = '4';
     document.getElementById('priceCalcDisplay').style.display = 'none';
-    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}">${esc(c.icon)} ${esc(c.name)}</option>`).join('');
     Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
@@ -2924,16 +3123,16 @@ const Rooms = {
     const pending = db.roomCharges.filter(r => !r.posted);
     document.getElementById('pendingCharges').innerHTML = pending.length ?
       pending.map(r => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(74,127,181,0.2);font-size:12px;">
-        <span>${r.roomName}: ${r.items.map(i => i.name).join(', ')}</span>
+        <span>${esc(r.roomName)}: ${r.items.map(i => esc(i.name)).join(', ')}</span>
         <span style="font-family:var(--font-mono);font-weight:600;">$${r.total.toFixed(2)}</span>
       </div>`).join('') :
       '<p style="color:var(--text-muted);font-size:12px;">No pending</p>';
     document.getElementById('roomHistory').innerHTML = db.roomCharges.slice(-20).reverse().map(r => `<tr>
-      <td style="font-weight:600;">${r.roomName}</td>
-      <td style="font-size:11px;">${r.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+      <td style="font-weight:600;">${esc(r.roomName)}</td>
+      <td style="font-size:11px;">${r.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
       <td style="font-family:var(--font-mono);color:var(--amber-300);">$${r.total.toFixed(2)}</td>
       <td>${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-      <td>${r.employee}</td>
+      <td>${esc(r.employee)}</td>
     </tr>`).join('');
   }
 };
@@ -2957,13 +3156,13 @@ const Reports = {
     document.getElementById('rptCard').textContent = '$' + tx.filter(t => t.type === 'card').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptCash').textContent = '$' + tx.filter(t => t.type === 'cash').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptBody').innerHTML = allTx.map(t => {
-      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${t.roomName}</span>` :
+      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${esc(t.roomName)}</span>` :
         t.type === 'card' ? '<span class="badge badge-purple">Card</span>' : '<span class="badge badge-success">Cash</span>';
       return `<tr>
         <td>${new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td>${t.employee}</td>
+        <td>${esc(t.employee)}</td>
         <td>${typeLabel}</td>
-        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
         <td style="font-family:var(--font-mono);">$${(t.subtotal + t.tax).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);color:var(--success);">${t.tip ? '$' + t.tip.toFixed(0) : '-'}</td>
         <td style="font-family:var(--font-mono);color:var(--amber-300);font-weight:600;">$${t.total.toFixed(2)}</td>
@@ -2983,11 +3182,11 @@ const Voids = {
     document.getElementById('voidValue').textContent = '$' + todayVoids.reduce((s, v) => s + v.total, 0).toFixed(0);
     document.getElementById('voidBody').innerHTML = db.voidedSales.slice(-50).reverse().map(v => `<tr class="voided">
       <td>${new Date(v.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-      <td><strong>${v.employee}</strong></td>
-      <td style="font-size:11px;">${v.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+      <td><strong>${esc(v.employee)}</strong></td>
+      <td style="font-size:11px;">${v.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
       <td style="font-family:var(--font-mono);color:var(--danger);font-weight:600;">$${v.total.toFixed(2)}</td>
-      <td><span class="badge badge-danger">${v.reason}</span></td>
-      <td style="font-size:11px;color:var(--text-muted);">${v.notes || '-'}</td>
+      <td><span class="badge badge-danger">${esc(v.reason)}</span></td>
+      <td style="font-size:11px;color:var(--text-muted);">${esc(v.notes || '-')}</td>
     </tr>`).join('');
   }
 };
@@ -3011,8 +3210,8 @@ const Settings = {
   renderCats() {
     document.getElementById('catManager').innerHTML = db.categories.map((c, i) =>
       `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
-        <span style="font-size:18px;">${c.icon}</span>
-        <span style="flex:1;font-weight:500;font-size:13px;">${c.name}</span>
+        <span style="font-size:18px;">${esc(c.icon)}</span>
+        <span style="flex:1;font-weight:500;font-size:13px;">${esc(c.name)}</span>
         <button class="btn-sm btn-danger" onclick="Settings.removeCat(${i})" style="padding:3px 6px;">✕</button>
       </div>`
     ).join('');
@@ -3124,8 +3323,8 @@ const Settings = {
       if (updated > 0) msg.push(`Updated ${updated} prices`);
       logAudit('inventory', msg.join(', '));
       toast(msg.join(', ') + '!');
-      POS.renderProducts();
-      Inventory.render();
+      POS.render();
+      Inv.render();
     } else {
       toast('All bourbons up to date!');
     }
