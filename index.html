@@ -384,6 +384,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 .btn-danger:hover { background: var(--danger-bg) !important; }
 .btn-success-solid { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
 .btn-full { width: 100%; }
+.rng-preset.active, .ts-preset.active { background: var(--amber-500); color: var(--text-inverse); border-color: var(--amber-500); }
 
 /* ═══════════════════════════════════════════
    KPI GRID
@@ -742,6 +743,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <div class="header-actions">
         <div class="employee-badge" id="currentEmployeeBadge">Staff</div>
         <div class="clock" id="clock"></div>
+        <button class="hdr-btn" id="hdrClockBtn" onclick="TimeClock.toggle()" title="Clock In/Out">⏱</button>
         <button class="hdr-btn" onclick="App.backup()">💾</button>
         <button class="hdr-btn lock" onclick="App.lock()">🔒</button>
       </div>
@@ -751,7 +753,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <button class="nav-tab" data-view="inventory" onclick="App.showView('inventory')">Inventory</button>
       <button class="nav-tab" data-view="rooms" onclick="App.showView('rooms')">Rooms</button>
       <button class="nav-tab manager-only" data-view="reports" onclick="App.authManagerView('reports')">Reports<span class="lock-icon">🔒</span></button>
+      <button class="nav-tab manager-only" data-view="drawer" onclick="App.authManagerView('drawer')">Drawer<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="voids" onclick="App.authManagerView('voids')">Voids<span class="lock-icon">🔒</span></button>
+      <button class="nav-tab manager-only" data-view="timesheet" onclick="App.authManagerView('timesheet')">Timesheet<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="audit" onclick="App.authManagerView('audit')">Audit<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="settings" onclick="App.authManagerView('settings')">Settings<span class="lock-icon">🔒</span></button>
     </div>
@@ -808,7 +812,20 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
 
     <!-- REPORTS VIEW -->
     <div class="view" id="view-reports">
-      <div class="view-header"><div class="view-title">Daily Report</div></div>
+      <div class="view-header">
+        <div class="view-title" id="rptTitle">Daily Report</div>
+        <button class="btn-sm btn-gold" onclick="App.zReport()">📊 Z-Report</button>
+      </div>
+      <div class="date-range-bar" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;padding:10px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);">
+        <button class="btn-sm rng-preset active" data-preset="today" onclick="Reports.setPreset('today')">Today</button>
+        <button class="btn-sm rng-preset" data-preset="yesterday" onclick="Reports.setPreset('yesterday')">Yesterday</button>
+        <button class="btn-sm rng-preset" data-preset="7d" onclick="Reports.setPreset('7d')">Last 7d</button>
+        <button class="btn-sm rng-preset" data-preset="30d" onclick="Reports.setPreset('30d')">Last 30d</button>
+        <button class="btn-sm rng-preset" data-preset="mtd" onclick="Reports.setPreset('mtd')">MTD</button>
+        <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">Custom:</span>
+        <input type="date" id="rptFrom" onchange="Reports.setPreset('custom')" style="padding:6px 8px;font-size:12px;">
+        <input type="date" id="rptTo" onchange="Reports.setPreset('custom')" style="padding:6px 8px;font-size:12px;">
+      </div>
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-val" id="rptRevenue">$0</div><div class="kpi-label">Revenue</div></div>
         <div class="kpi-card"><div class="kpi-val" id="rptTips">$0</div><div class="kpi-label">Tips</div></div>
@@ -817,10 +834,79 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         <div class="kpi-card"><div class="kpi-val" id="rptCard">$0</div><div class="kpi-label">Card</div></div>
         <div class="kpi-card"><div class="kpi-val" id="rptCash">$0</div><div class="kpi-label">Cash</div></div>
       </div>
-      <table class="data-table">
-        <thead><tr><th>Time</th><th>Staff</th><th>Type</th><th>Items</th><th>Sub</th><th>Tip</th><th>Total</th></tr></thead>
-        <tbody id="rptBody"></tbody>
-      </table>
+
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Transactions</h3>
+        <table class="data-table">
+          <thead><tr><th>Time</th><th>Staff</th><th>Type</th><th>Items</th><th>Sub</th><th>Tip</th><th>Total</th><th></th></tr></thead>
+          <tbody id="rptBody"></tbody>
+        </table>
+      </div>
+
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Hourly Sales Heatmap</h3>
+        <div id="rptHeatmap" style="display:grid;grid-template-columns:60px 1fr 80px 60px;gap:4px;font-size:11px;font-family:var(--font-mono);"></div>
+      </div>
+
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Top Sellers (Sales Mix)</h3>
+        <table class="data-table">
+          <thead><tr><th>Item</th><th>Qty</th><th>Revenue</th><th>% Rev</th></tr></thead>
+          <tbody id="rptMixBody"></tbody>
+        </table>
+      </div>
+
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Dead SKUs (zero sales in range)</h3>
+        <div id="rptDead" style="font-size:12px;color:var(--text-muted);"></div>
+      </div>
+
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Pour Cost / COGS <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(approximate)</span></h3>
+        <div class="kpi-grid" style="margin-bottom:10px;">
+          <div class="kpi-card"><div class="kpi-val" id="pcRevenue">$0</div><div class="kpi-label">Liquor+Cocktail Rev</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="pcCost">$0</div><div class="kpi-label">Est. Cost</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="pcMargin">$0</div><div class="kpi-label">Margin</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="pcPct">0%</div><div class="kpi-label">Pour Cost %</div></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Item</th><th>Qty</th><th>Revenue</th><th>Cost*</th><th>Margin</th><th>Margin %</th></tr></thead>
+          <tbody id="rptPourBody"></tbody>
+        </table>
+        <p style="font-size:10px;color:var(--text-muted);margin-top:6px;">*Liquor cost = bottleCost ÷ (bottleSize_oz ÷ pourSize_oz), scaled by pour modifier. Cocktails use flat cost default (editable in Settings).</p>
+      </div>
+    </div>
+
+    <!-- TIMESHEET VIEW -->
+    <div class="view" id="view-timesheet">
+      <div class="view-header">
+        <div class="view-title">⏱ Timesheet</div>
+        <button class="btn-sm btn-gold" onclick="TimeClock.toggle()">Clock In/Out (me)</button>
+      </div>
+      <div class="date-range-bar" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;padding:10px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);">
+        <button class="btn-sm ts-preset active" data-preset="today" onclick="TimeClock.setPreset('today')">Today</button>
+        <button class="btn-sm ts-preset" data-preset="yesterday" onclick="TimeClock.setPreset('yesterday')">Yesterday</button>
+        <button class="btn-sm ts-preset" data-preset="7d" onclick="TimeClock.setPreset('7d')">Last 7d</button>
+        <button class="btn-sm ts-preset" data-preset="30d" onclick="TimeClock.setPreset('30d')">Last 30d</button>
+        <button class="btn-sm ts-preset" data-preset="mtd" onclick="TimeClock.setPreset('mtd')">MTD</button>
+        <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">Custom:</span>
+        <input type="date" id="tsFrom" onchange="TimeClock.setPreset('custom')" style="padding:6px 8px;font-size:12px;">
+        <input type="date" id="tsTo" onchange="TimeClock.setPreset('custom')" style="padding:6px 8px;font-size:12px;">
+      </div>
+      <div class="settings-section">
+        <h3>Totals by Employee</h3>
+        <table class="data-table">
+          <thead><tr><th>Employee</th><th>Shifts</th><th>Total Hours</th></tr></thead>
+          <tbody id="tsTotalsBody"></tbody>
+        </table>
+      </div>
+      <div class="settings-section" style="margin-top:16px;">
+        <h3>Entries</h3>
+        <table class="data-table">
+          <thead><tr><th>Employee</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Actions</th></tr></thead>
+          <tbody id="tsEntriesBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- VOIDS VIEW -->
@@ -851,12 +937,39 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
           <option value="inventory">Inventory</option>
           <option value="employee">Employee</option>
           <option value="settings">Settings</option>
+          <option value="timeclock">Time Clock</option>
         </select>
       </div>
       <table class="data-table">
         <thead><tr><th>Time</th><th>Employee</th><th>Event</th><th>Details</th></tr></thead>
         <tbody id="auditBody"></tbody>
       </table>
+    </div>
+
+    <!-- DRAWER VIEW -->
+    <div class="view" id="view-drawer">
+      <div class="view-header">
+        <div class="view-title">💰 Cash Drawer & Shifts</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm btn-gold" onclick="Drawer.openShiftModal()">🟢 Open Shift</button>
+          <button class="btn-sm" onclick="Drawer.paidInOutModal('in')">⬇ Paid In</button>
+          <button class="btn-sm" onclick="Drawer.paidInOutModal('out')">⬆ Paid Out</button>
+          <button class="btn-sm btn-danger" onclick="Drawer.closeShiftModal()">🔴 Close Shift</button>
+        </div>
+      </div>
+      <div id="drawerStatus" style="margin-bottom:16px;"></div>
+      <div class="settings-section">
+        <h3>Shift Events</h3>
+        <div id="drawerEvents" style="font-family:var(--font-mono);font-size:12px;"></div>
+      </div>
+      <div class="settings-section">
+        <h3>Closed Shifts</h3>
+        <div id="shiftHistory" style="font-size:12px;"></div>
+      </div>
+      <div class="settings-section">
+        <h3>Tip-Out History</h3>
+        <div id="tipOutHistory" style="font-size:12px;"></div>
+      </div>
     </div>
 
     <!-- SETTINGS VIEW -->
@@ -893,6 +1006,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
           <input type="number" id="setBourbonTax" value="7.5" step="0.01">
           <small style="color:var(--text-muted);font-size:11px;margin-top:4px;">Applied to bourbon, cocktails, and flights only</small>
         </div>
+        <div class="form-row">
+          <label class="form-label">Cocktail Cost Default ($)</label>
+          <input type="number" id="setCocktailCost" value="3" step="0.25" min="0">
+          <small style="color:var(--text-muted);font-size:11px;margin-top:4px;">Used for pour-cost / COGS report when cocktail has no itemized cost</small>
+        </div>
       </div>
 
       <div class="settings-section">
@@ -905,9 +1023,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <button class="btn-sm btn-gold btn-full" onclick="Settings.save()" style="padding:12px;">Save Settings</button>
-        <button class="btn-sm btn-full" onclick="App.backup()" style="padding:12px;">Export JSON</button>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn-sm btn-gold btn-full" onclick="Settings.save()" style="padding:12px;flex:1;">Save Settings</button>
+        <button class="btn-sm btn-full" onclick="App.backup()" style="padding:12px;flex:1;">💾 Export</button>
+        <button class="btn-sm btn-full" onclick="App.restore()" style="padding:12px;flex:1;">📥 Restore</button>
       </div>
 
       <div class="settings-section" style="background:var(--bg-elevated);border:1px solid var(--amber-500);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
@@ -1190,6 +1309,56 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
   </div>
 </div>
 
+<!-- OPEN SHIFT MODAL -->
+<div class="modal-overlay" id="modalOpenShift">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head"><h2>🟢 Open Shift</h2><button class="modal-close" onclick="Modal.close('modalOpenShift')">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Count opening float cash and enter amount.</p>
+      <div class="form-row"><label class="form-label">Opening Float ($)</label><input type="number" id="openingFloat" placeholder="200.00" step="0.01" min="0"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Drawer.openShift()" style="padding:14px;margin-top:12px;">Open Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAID IN/OUT MODAL -->
+<div class="modal-overlay" id="modalPaidIO">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head"><h2 id="paidIOTitle">Paid In</h2><button class="modal-close" onclick="Modal.close('modalPaidIO')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label class="form-label">Amount ($)</label><input type="number" id="paidIOAmount" placeholder="25.00" step="0.01" min="0"></div>
+      <div class="form-row"><label class="form-label">Reason</label><input type="text" id="paidIOReason" placeholder="e.g., Cleaning supplies"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Drawer.savePaidIO()" style="padding:14px;margin-top:12px;">Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE SHIFT MODAL -->
+<div class="modal-overlay" id="modalCloseShift">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-head"><h2>🔴 Close Shift</h2><button class="modal-close" onclick="Modal.close('modalCloseShift')">&times;</button></div>
+    <div class="modal-body">
+      <div id="closeShiftSummary" style="font-family:var(--font-mono);font-size:13px;line-height:1.8;margin-bottom:12px;"></div>
+      <div class="form-row"><label class="form-label">Counted Cash ($)</label><input type="number" id="countedCash" placeholder="0.00" step="0.01" oninput="Drawer.updateVariance()"></div>
+      <div id="varianceDisplay" style="margin:8px 0;font-weight:600;"></div>
+      <div class="form-row" id="varReasonRow" style="display:none;"><label class="form-label">Variance Reason (required)</label><input type="text" id="varianceReason" placeholder="e.g., till short"></div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg-elevated);border-radius:6px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="runTipPool" checked> Allocate tip pool now</label>
+        <div id="tipPoolSection" style="margin-top:10px;">
+          <div class="form-row"><label class="form-label">Split Method</label>
+            <select id="tipSplitMethod" onchange="Drawer.renderTipSplit()">
+              <option value="equal">Equal share per employee</option>
+              <option value="percent">Manual % per employee</option>
+            </select>
+          </div>
+          <div id="tipSplitBody" style="font-size:12px;"></div>
+        </div>
+      </div>
+      <button class="btn-sm btn-danger btn-full" onclick="Drawer.closeShift()" style="padding:14px;margin-top:12px;">Close Shift & Generate Z-Report</button>
+    </div>
+  </div>
+</div>
+
 <!-- HIDDEN RECEIPT FOR PRINT -->
 <div class="receipt-print" id="receiptPrint"></div>
 
@@ -1241,8 +1410,14 @@ let db = {
   roomCharges: [],
   voidedSales: [],
   auditLog: [],
-  settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' }
+  settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge', cocktailCostDefault: 3 },
+  cashDrawer: null,
+  shifts: [],
+  tipOuts: [],
+  timeClock: []
 };
+
+const CATALOG_VERSION = 2; // bump when seedData adds new defaults
 
 function loadDB() {
   try {
@@ -1253,8 +1428,33 @@ function loadDB() {
       if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }];
       if (!db.voidedSales) db.voidedSales = [];
       if (!db.auditLog) db.auditLog = [];
+      if (!db.shifts) db.shifts = [];
+      if (!db.tipOuts) db.tipOuts = [];
+      if (db.cashDrawer === undefined) db.cashDrawer = null;
+      if (!db.timeClock) db.timeClock = [];
+      if (db.settings && db.settings.cocktailCostDefault == null) db.settings.cocktailCostDefault = 3;
+      if (db.catalogVersion == null) db.catalogVersion = 0;
     }
   } catch(e) { console.error(e); }
+}
+
+// Merge any seedData items missing from db.products by name (case-insensitive).
+// Runs every load so menu additions reach existing installs without overwriting edits.
+function mergeCatalog() {
+  if (db.catalogVersion >= CATALOG_VERSION) return 0;
+  const seeds = App.getSeeds ? App.getSeeds() : [];
+  const existing = new Set(db.products.map(p => p.name.toLowerCase()));
+  let added = 0;
+  seeds.forEach(s => {
+    if (!existing.has(s.name.toLowerCase())) {
+      db.products.push({ ...s, id: uid(), eightySixed: false });
+      added++;
+    }
+  });
+  db.catalogVersion = CATALOG_VERSION;
+  saveDB();
+  if (added > 0) logAudit('inventory', `Catalog v${CATALOG_VERSION}: merged ${added} new items`);
+  return added;
 }
 function saveDB() {
   // Keep audit log under 2000 entries
@@ -1263,8 +1463,43 @@ function saveDB() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
 
+// HTML-escape user-controlled strings before injecting into innerHTML
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// SHA-256 hash for PINs (with per-install salt). Stored hashes look like "h:<hex>".
+let PIN_SALT = localStorage.getItem('bunghole_pin_salt');
+if (!PIN_SALT) {
+  PIN_SALT = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+  localStorage.setItem('bunghole_pin_salt', PIN_SALT);
+}
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(PIN_SALT + ':' + pin);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return 'h:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function migrateEmployeePins() {
+  let changed = false;
+  for (const e of db.employees) {
+    if (e.pin && !String(e.pin).startsWith('h:')) {
+      e.pin = await hashPin(e.pin);
+      changed = true;
+    }
+  }
+  if (changed) saveDB();
+}
+
 let currentEmployee = null;
 let voidReason = '';
+let lastSale = null;       // { tx, type, expiresAt } — last completed sale, for 60s undo
+let lastSaleTimer = null;
 
 /* ═══════════════════════════════════════════
    AUDIT LOG
@@ -1288,9 +1523,9 @@ const Audit = {
     if (filter !== 'all') logs = logs.filter(l => l.type === filter);
     document.getElementById('auditBody').innerHTML = logs.slice(0, 100).map(l => `<tr>
       <td style="white-space:nowrap;">${new Date(l.timestamp).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-      <td>${l.employee}</td>
-      <td><span class="badge badge-${l.type === 'void' ? 'danger' : l.type === 'sale' ? 'success' : l.type === 'login' ? 'blue' : 'warning'}">${l.type}</span></td>
-      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${l.details}</td>
+      <td>${esc(l.employee)}</td>
+      <td><span class="badge badge-${l.type === 'void' ? 'danger' : l.type === 'sale' ? 'success' : l.type === 'login' ? 'blue' : 'warning'}">${esc(l.type)}</span></td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;">${esc(l.details)}</td>
     </tr>`).join('');
   },
 
@@ -1319,19 +1554,23 @@ const P = {
     if (P.code.length === 4) setTimeout(() => P.submit(), 150);
   },
   clear() { P.code = ''; P.updateDots(); },
-  submit() {
-    const emp = db.employees.find(e => e.pin === P.code && e.active !== false);
+  async submit() {
+    const tryHash = await hashPin(P.code);
+    const emp = db.employees.find(e => (e.pin === tryHash || e.pin === P.code) && e.active !== false);
     if (emp) {
+      // upgrade plaintext PIN to hash on successful match
+      if (emp.pin === P.code) { emp.pin = tryHash; saveDB(); }
       currentEmployee = emp;
       document.getElementById('lockScreen').classList.add('hidden');
       App.updateEmployeeBadge();
       App.updateNavTabs();
       P.code = '';
       P.updateDots();
+      if (typeof TimeClock !== 'undefined') TimeClock.refreshBadge();
       logAudit('login', `${emp.name} logged in`);
       toast(`Welcome, ${emp.name}!`);
     } else {
-      logAudit('login', `Failed login attempt: ${P.code}`);
+      logAudit('login', 'Failed login attempt');
       toast('Invalid PIN', 'error');
       document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
       setTimeout(() => { P.code = ''; P.updateDots(); }, 500);
@@ -1353,17 +1592,27 @@ const App = {
 
   init() {
     loadDB();
-    if (!db.products.length) App.seedData();
+    if (!db.products.length) {
+      App.seedData();
+      db.catalogVersion = CATALOG_VERSION;
+      saveDB();
+    } else {
+      mergeCatalog();
+    }
+    migrateEmployeePins();
     POS.renderCats();
     POS.render();
     App.startClock();
+    App.bindShortcuts();
     document.getElementById('setTax').value = db.settings.taxRate;
     document.getElementById('setBourbonTax').value = db.settings.bourbonTaxRate || 7.5;
     document.getElementById('setName').value = db.settings.name;
+    const ccEl = document.getElementById('setCocktailCost');
+    if (ccEl) ccEl.value = db.settings.cocktailCostDefault != null ? db.settings.cocktailCostDefault : 3;
   },
 
-  seedData() {
-    const seeds = [
+  getSeeds() {
+    return [
       // ═══ TOP 20 BOURBON COCKTAILS (National Avg Prices) ═══
       { name:'Old Fashioned', category:'cocktail', price:14, stock:99, alert:1, emoji:'🥃' },
       { name:'Mint Julep', category:'cocktail', price:13, stock:99, alert:1, emoji:'🌿' },
@@ -1534,7 +1783,10 @@ const App = {
       { name:'Ginger Beer', category:'mixer', price:4, stock:36, alert:8, emoji:'🫚' },
       { name:'Extra Ice', category:'mixer', price:0, stock:99, alert:1, emoji:'🧊' }
     ];
-    seeds.forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false }));
+  },
+
+  seedData() {
+    App.getSeeds().forEach(s => db.products.push({ ...s, id: uid(), eightySixed: false }));
     saveDB();
   },
 
@@ -1564,6 +1816,8 @@ const App = {
     if (v === 'voids') Voids.render();
     if (v === 'audit') Audit.render();
     if (v === 'settings') { Settings.renderCats(); Employees.render(); }
+    if (v === 'drawer') Drawer.render();
+    if (v === 'timesheet') TimeClock.renderView();
   },
 
   authManagerView(v) {
@@ -1603,6 +1857,127 @@ const App = {
     const tick = () => { el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
     tick();
     setInterval(tick, 30000);
+  },
+
+  restore() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!confirm(`Restore from "${file.name}"? This OVERWRITES all current data.`)) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const restored = JSON.parse(ev.target.result);
+          if (!restored.products || !restored.employees) throw new Error('Invalid backup file');
+          localStorage.setItem(DB_KEY, JSON.stringify(restored));
+          logAudit('settings', `Restored backup: ${file.name}`);
+          toast('Restored — reloading…');
+          setTimeout(() => location.reload(), 800);
+        } catch(err) {
+          toast('Invalid backup file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  },
+
+  // 60-second undo for the last completed sale
+  stashLastSale(tx, type) {
+    lastSale = { tx, type, expiresAt: Date.now() + 60000 };
+    clearTimeout(lastSaleTimer);
+    lastSaleTimer = setTimeout(() => { lastSale = null; App.renderUndoBanner(); }, 60000);
+    App.renderUndoBanner();
+  },
+  renderUndoBanner() {
+    let bar = document.getElementById('undoBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'undoBar';
+      bar.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--warning);color:#000;padding:10px 16px;border-radius:8px;font-weight:600;z-index:1000;box-shadow:0 4px 16px rgba(0,0,0,0.4);display:none;align-items:center;gap:12px;';
+      document.body.appendChild(bar);
+    }
+    if (!lastSale) { bar.style.display = 'none'; return; }
+    const secs = Math.max(0, Math.ceil((lastSale.expiresAt - Date.now()) / 1000));
+    bar.innerHTML = `Sale $${lastSale.tx.total.toFixed(2)} • ${secs}s <button onclick="App.undoLastSale()" style="background:#000;color:#fff;border:0;padding:6px 12px;border-radius:6px;font-weight:700;cursor:pointer;">UNDO</button>`;
+    bar.style.display = 'flex';
+  },
+  undoLastSale() {
+    if (!lastSale) return;
+    const { tx, type } = lastSale;
+    if (type === 'room') db.roomCharges = db.roomCharges.filter(t => t.id !== tx.id);
+    else db.transactions = db.transactions.filter(t => t.id !== tx.id);
+    // Restore stock
+    tx.items.forEach(c => {
+      if (c.isSpecial) return;
+      const p = db.products.find(x => x.id === c.pid);
+      if (p) p.stock += c.qty;
+    });
+    saveDB();
+    logAudit('void', `UNDO sale: $${tx.total.toFixed(2)}`);
+    lastSale = null;
+    clearTimeout(lastSaleTimer);
+    App.renderUndoBanner();
+    POS.render();
+    toast('Sale undone');
+  },
+
+  zReport() {
+    const today = new Date().toDateString();
+    const tx = db.transactions.filter(t => t.date === today);
+    const roomTx = db.roomCharges.filter(t => t.date === today);
+    const all = [...tx, ...roomTx];
+    const sum = (arr, fn) => arr.reduce((s, t) => s + fn(t), 0);
+    const byEmp = {};
+    all.forEach(t => { const k = t.employee || 'Unknown'; (byEmp[k] = byEmp[k] || { total: 0, count: 0, tips: 0 }); byEmp[k].total += t.total; byEmp[k].count++; byEmp[k].tips += t.tip || 0; });
+    const byCat = {};
+    all.forEach(t => t.items.forEach(i => {
+      const p = db.products.find(x => x.id === i.pid);
+      const cat = p?.category || 'other';
+      const amt = (i.basePrice + i.extra) * i.qty;
+      byCat[cat] = (byCat[cat] || 0) + amt;
+    }));
+    const card = sum(tx.filter(t => t.type === 'card'), t => t.total);
+    const cash = sum(tx.filter(t => t.type === 'cash'), t => t.total);
+    const room = sum(roomTx, t => t.total);
+    const voids = db.voidedSales.filter(v => v.date === today);
+    const voidTotal = sum(voids, v => v.total);
+    let html = `<div style="font-family:var(--font-mono);font-size:13px;line-height:1.7;">`;
+    html += `<h3 style="font-family:var(--font-display);color:var(--amber-300);margin-bottom:8px;">Z-Report — ${esc(today)}</h3>`;
+    html += `<div><strong>Revenue:</strong> $${sum(all, t => t.total).toFixed(2)}</div>`;
+    html += `<div>Card: $${card.toFixed(2)} • Cash: $${cash.toFixed(2)} • Room: $${room.toFixed(2)}</div>`;
+    html += `<div>Tips: $${sum(all, t => t.tip || 0).toFixed(2)} • Tx: ${all.length} • Items: ${sum(all, t => t.items.reduce((a, b) => a + b.qty, 0))}</div>`;
+    html += `<div style="color:var(--danger);">Voids: ${voids.length} ($${voidTotal.toFixed(2)})</div>`;
+    html += `<hr style="border-color:var(--border-subtle);margin:10px 0;"><strong>By Employee</strong>`;
+    Object.entries(byEmp).forEach(([n, v]) => { html += `<div>${esc(n)}: $${v.total.toFixed(2)} (${v.count} tx, $${v.tips.toFixed(2)} tips)</div>`; });
+    html += `<hr style="border-color:var(--border-subtle);margin:10px 0;"><strong>By Category</strong>`;
+    Object.entries(byCat).sort((a, b) => b[1] - a[1]).forEach(([c, v]) => { html += `<div>${esc(c)}: $${v.toFixed(2)}</div>`; });
+    html += `</div>`;
+    const win = window.open('', '_blank', 'width=480,height=720');
+    win.document.write(`<title>Z-Report</title><body style="background:#1a110c;color:#f0e6d6;padding:20px;">${html}<button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#c8922a;color:#000;border:0;border-radius:6px;font-weight:700;cursor:pointer;">Print</button></body>`);
+  },
+
+  bindShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      const inField = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+        return;
+      }
+      if (inField) return;
+      if (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        const s = document.getElementById('searchInput');
+        if (s) s.focus();
+      } else if (e.key === 'Enter' && App.currentView === 'pos' && cart.length) {
+        document.getElementById('btnCard')?.click();
+      } else if (e.key === 'u' && lastSale) {
+        App.undoLastSale();
+      }
+    });
   }
 };
 
@@ -1613,9 +1988,9 @@ const Employees = {
   render() {
     document.getElementById('employeeList').innerHTML = db.employees.map(emp => `
       <div class="employee-row ${emp.active === false ? 'disabled' : ''}">
-        <span class="name">${emp.name}</span>
-        <span class="role ${emp.role}">${emp.role}</span>
-        <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:11px;">${emp.pin}</span>
+        <span class="name">${esc(emp.name)}</span>
+        <span class="role ${esc(emp.role)}">${esc(emp.role)}</span>
+        <span style="font-family:var(--font-mono);color:var(--text-muted);font-size:11px;">••••</span>
         <button class="btn-sm" onclick="Employees.edit('${emp.id}')" style="background:var(--blue);border-color:var(--blue);">Edit</button>
         ${emp.id !== 'emp_owner' ? `
           <button class="btn-sm" onclick="Employees.toggle('${emp.id}')">${emp.active !== false ? 'Disable' : 'Enable'}</button>
@@ -1632,7 +2007,7 @@ const Employees = {
     const newName = prompt('Edit name:', emp.name);
     if (newName === null) return; // cancelled
 
-    const newPin = prompt('Edit 4-digit PIN:', emp.pin);
+    const newPin = prompt('Enter new 4-digit PIN:', '');
     if (newPin === null) return; // cancelled
 
     if (!newPin || newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
@@ -1641,23 +2016,24 @@ const Employees = {
     }
 
     // Check if PIN is used by another employee
-    const pinInUse = db.employees.find(e => e.pin === newPin && e.id !== id);
-    if (pinInUse) {
-      toast('PIN already in use by ' + pinInUse.name, 'error');
-      return;
-    }
-
-    const oldName = emp.name;
-    const oldPin = emp.pin;
-    emp.name = newName.trim() || emp.name;
-    emp.pin = newPin;
-    saveDB();
-    logAudit('employee', `Edited ${oldName}: name→${emp.name}, PIN→${emp.pin}`);
-    Employees.render();
-    toast(`${emp.name} updated`);
+    (async () => {
+      const newPinHash = await hashPin(newPin);
+      const pinInUse = db.employees.find(e => e.pin === newPinHash && e.id !== id);
+      if (pinInUse) {
+        toast('PIN already in use by ' + pinInUse.name, 'error');
+        return;
+      }
+      const oldName = emp.name;
+      emp.name = newName.trim() || emp.name;
+      emp.pin = newPinHash;
+      saveDB();
+      logAudit('employee', `Edited ${oldName}: name→${emp.name}, PIN updated`);
+      Employees.render();
+      toast(`${emp.name} updated`);
+    })();
   },
 
-  add() {
+  async add() {
     const name = document.getElementById('newEmpName').value.trim();
     const pin = document.getElementById('newEmpPin').value.trim();
     const role = document.getElementById('newEmpRole').value;
@@ -1665,11 +2041,12 @@ const Employees = {
       toast('Name + 4-digit PIN required', 'error');
       return;
     }
-    if (db.employees.find(e => e.pin === pin)) {
+    const pinHash = await hashPin(pin);
+    if (db.employees.find(e => e.pin === pinHash)) {
       toast('PIN already in use', 'error');
       return;
     }
-    db.employees.push({ id: uid(), name, pin, role, active: true });
+    db.employees.push({ id: uid(), name, pin: pinHash, role, active: true });
     saveDB();
     logAudit('employee', `Added employee: ${name} (${role})`);
     document.getElementById('newEmpName').value = '';
@@ -1711,11 +2088,11 @@ const POS = {
     const bar = document.getElementById('catBar');
     let h = `<button class="cat-chip ${currentCat === 'all' ? 'active' : ''}" onclick="currentCat='all';POS.renderCats();POS.render();">All</button>`;
     db.categories.forEach(c => {
-      h += `<button class="cat-chip ${currentCat === c.id ? 'active' : ''}" onclick="currentCat='${c.id}';POS.renderCats();POS.render();">${c.icon} ${c.name}</button>`;
+      h += `<button class="cat-chip ${currentCat === c.id ? 'active' : ''}" onclick="currentCat='${c.id}';POS.renderCats();POS.render();">${esc(c.icon)} ${esc(c.name)}</button>`;
     });
     bar.innerHTML = h;
     const sel = document.getElementById('addCat');
-    if (sel) sel.innerHTML = db.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    if (sel) sel.innerHTML = db.categories.map(c => `<option value="${c.id}">${esc(c.icon)} ${esc(c.name)}</option>`).join('');
   },
 
   render() {
@@ -1736,8 +2113,8 @@ const POS = {
       return `<div class="product-card ${p.eightySixed ? 'is-86' : ''}" onclick="POS.tap('${p.id}')">
         ${p.eightySixed ? '<div class="badge-86">86</div>' : ''}
         <div class="stock-dot ${isOut ? 'out' : isLow ? 'low' : ''}"></div>
-        <div class="prod-emoji">${emoji}</div>
-        <div class="prod-name">${p.name}</div>
+        <div class="prod-emoji">${esc(emoji)}</div>
+        <div class="prod-name">${esc(p.name)}</div>
         <div class="prod-meta">${p.stock} left</div>
         <div class="prod-price">$${p.price.toFixed(2)}</div>
       </div>`;
@@ -1851,7 +2228,7 @@ const Cart = {
       const price = (c.basePrice + c.extra) * c.qty;
       return `<div class="cart-item ${c.mod ? 'has-mod' : ''}">
         <div class="ci-top">
-          <div><div class="ci-name">${c.name}</div>${c.mod ? `<div class="ci-mod">${c.mod}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}</div>
+          <div><div class="ci-name">${esc(c.name)}</div>${c.mod ? `<div class="ci-mod">${esc(c.mod)}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}</div>
           <div class="ci-price">$${price.toFixed(2)}</div>
         </div>
         <div class="ci-bottom">
@@ -2147,6 +2524,7 @@ const Cart = {
     else db.transactions.push(tx);
     logAudit('sale', `${type === 'room' ? 'Room ' + room?.name : type} sale: $${tx.total.toFixed(2)}${discountAmt > 0 ? ` (${orderDiscount.percent}% off)` : ''}`);
     saveDB();
+    App.stashLastSale(tx, type);
     toast(type === 'room' ? `Posted to ${room?.name}` : 'Payment recorded');
     // Store last transaction for receipt
     lastTransaction = tx;
@@ -2270,10 +2648,10 @@ const Tabs = {
       return `
         <div class="tab-card">
           <div class="tab-card-head">
-            <span class="tab-card-name">${tab.guest}</span>
+            <span class="tab-card-name">${esc(tab.guest)}</span>
             <span class="tab-card-time">${timeStr}</span>
           </div>
-          <div class="tab-card-items">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${tab.employee}</div>
+          <div class="tab-card-items">${itemCount} item${itemCount !== 1 ? 's' : ''} • ${esc(tab.employee)}</div>
           <div class="tab-card-total">$${total.toFixed(2)}</div>
           <div class="tab-card-btns">
             <button class="btn-sm" onclick="Tabs.addTo('${tab.id}')">+ Add</button>
@@ -2530,6 +2908,12 @@ const Signature = {
 let lastTransaction = null;
 
 const Receipt = {
+  showById(id) {
+    const tx = db.transactions.find(t => t.id === id) || db.roomCharges.find(t => t.id === id);
+    if (!tx) { toast('Transaction not found', 'error'); return; }
+    lastTransaction = tx;
+    Receipt.show(tx);
+  },
   show(tx) {
     const time = new Date(tx.timestamp);
     const timeStr = time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -2537,8 +2921,8 @@ const Receipt = {
 
     // Build receipt preview HTML
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
       return html;
     }).join('');
 
@@ -2578,8 +2962,8 @@ const Receipt = {
     const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
       return html;
     }).join('');
 
@@ -2590,7 +2974,7 @@ const Receipt = {
         <p>714 N 3rd Street</p>
         <p>Bardstown, KY 40004</p>
         <p style="margin-top:6px;">${dateStr} ${timeStr}</p>
-        <p>Server: ${tx.employee}</p>
+        <p>Server: ${esc(tx.employee)}</p>
       </div>
       <div class="receipt-items">${itemsHtml}</div>
       <div class="receipt-totals">
@@ -2730,7 +3114,7 @@ const Inv = {
   render() {
     const catF = document.getElementById('invFilterCat').value;
     const stockF = document.getElementById('invFilterStock').value;
-    document.getElementById('invFilterCat').innerHTML = '<option value="all">All</option>' + db.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('invFilterCat').innerHTML = '<option value="all">All</option>' + db.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     document.getElementById('invFilterCat').value = catF;
     let items = db.products;
     if (catF !== 'all') items = items.filter(p => p.category === catF);
@@ -2741,8 +3125,8 @@ const Inv = {
       const stockClass = p.eightySixed ? 'badge-red-solid' : p.stock <= p.alert ? 'badge-danger' : p.stock <= p.alert * 2 ? 'badge-warning' : 'badge-success';
       const costInfo = p.bottleCost ? `<div style="font-size:10px;color:var(--text-muted);">Cost: $${p.bottleCost} | ${p.markup || 4}×</div>` : '';
       return `<tr>
-        <td><strong>${p.emoji || cat.icon} ${p.name}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}${costInfo}</td>
-        <td>${cat.icon}</td>
+        <td><strong>${esc(p.emoji || cat.icon)} ${esc(p.name)}</strong>${p.eightySixed ? ' <span class="badge badge-red-solid">86</span>' : ''}${costInfo}</td>
+        <td>${esc(cat.icon)}</td>
         <td style="font-family:var(--font-mono);">$${p.price.toFixed(2)}</td>
         <td><span class="badge ${stockClass}">${p.stock}</span></td>
         <td style="white-space:nowrap;">
@@ -2799,7 +3183,7 @@ const Inv = {
     document.getElementById('addBottleSize').value = p.bottleSize || 750;
     document.getElementById('addPourSize').value = p.pourSize || 1.5;
     document.getElementById('addMarkup').value = p.markup || 4;
-    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}" ${c.id === p.category ? 'selected' : ''}>${esc(c.icon)} ${esc(c.name)}</option>`).join('');
     Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
@@ -2843,7 +3227,7 @@ const Inv = {
     document.getElementById('addPourSize').value = '1.5';
     document.getElementById('addMarkup').value = '4';
     document.getElementById('priceCalcDisplay').style.display = 'none';
-    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+    document.getElementById('addCat').innerHTML = db.categories.map(c => `<option value="${c.id}">${esc(c.icon)} ${esc(c.name)}</option>`).join('');
     Inv.toggleBottleFields();
     Modal.open('modalAdd');
   },
@@ -2924,16 +3308,16 @@ const Rooms = {
     const pending = db.roomCharges.filter(r => !r.posted);
     document.getElementById('pendingCharges').innerHTML = pending.length ?
       pending.map(r => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(74,127,181,0.2);font-size:12px;">
-        <span>${r.roomName}: ${r.items.map(i => i.name).join(', ')}</span>
+        <span>${esc(r.roomName)}: ${r.items.map(i => esc(i.name)).join(', ')}</span>
         <span style="font-family:var(--font-mono);font-weight:600;">$${r.total.toFixed(2)}</span>
       </div>`).join('') :
       '<p style="color:var(--text-muted);font-size:12px;">No pending</p>';
     document.getElementById('roomHistory').innerHTML = db.roomCharges.slice(-20).reverse().map(r => `<tr>
-      <td style="font-weight:600;">${r.roomName}</td>
-      <td style="font-size:11px;">${r.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+      <td style="font-weight:600;">${esc(r.roomName)}</td>
+      <td style="font-size:11px;">${r.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
       <td style="font-family:var(--font-mono);color:var(--amber-300);">$${r.total.toFixed(2)}</td>
       <td>${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-      <td>${r.employee}</td>
+      <td>${esc(r.employee)}</td>
     </tr>`).join('');
   }
 };
@@ -2942,33 +3326,342 @@ const Rooms = {
    REPORTS
    ═══════════════════════════════════════════ */
 const Reports = {
+  preset: 'today',
+  from: null,
+  to: null,
+
+  _startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; },
+  _endOfDay(d) { const x = new Date(d); x.setHours(23,59,59,999); return x; },
+  _fmtISO(d) { return d.toISOString().split('T')[0]; },
+
+  _computeRange() {
+    const now = new Date();
+    let from, to;
+    if (this.preset === 'today') { from = this._startOfDay(now); to = this._endOfDay(now); }
+    else if (this.preset === 'yesterday') { const y = new Date(now); y.setDate(y.getDate()-1); from = this._startOfDay(y); to = this._endOfDay(y); }
+    else if (this.preset === '7d') { const y = new Date(now); y.setDate(y.getDate()-6); from = this._startOfDay(y); to = this._endOfDay(now); }
+    else if (this.preset === '30d') { const y = new Date(now); y.setDate(y.getDate()-29); from = this._startOfDay(y); to = this._endOfDay(now); }
+    else if (this.preset === 'mtd') { const y = new Date(now.getFullYear(), now.getMonth(), 1); from = this._startOfDay(y); to = this._endOfDay(now); }
+    else if (this.preset === 'custom') {
+      const f = document.getElementById('rptFrom').value;
+      const t = document.getElementById('rptTo').value;
+      from = f ? this._startOfDay(new Date(f + 'T00:00:00')) : this._startOfDay(now);
+      to = t ? this._endOfDay(new Date(t + 'T00:00:00')) : this._endOfDay(now);
+    }
+    this.from = from; this.to = to;
+    return { from, to };
+  },
+
+  setPreset(p) {
+    this.preset = p;
+    document.querySelectorAll('.rng-preset').forEach(b => b.classList.toggle('active', b.dataset.preset === p));
+    if (p !== 'custom') {
+      const { from, to } = this._computeRange();
+      const fEl = document.getElementById('rptFrom'); const tEl = document.getElementById('rptTo');
+      if (fEl) fEl.value = this._fmtISO(from);
+      if (tEl) tEl.value = this._fmtISO(to);
+    }
+    this.render();
+  },
+
+  _filterTx() {
+    const { from, to } = this._computeRange();
+    const fromMs = from.getTime(), toMs = to.getTime();
+    const inRange = t => { const ts = new Date(t.timestamp).getTime(); return ts >= fromMs && ts <= toMs; };
+    return {
+      tx: db.transactions.filter(inRange),
+      roomTx: db.roomCharges.filter(inRange),
+      from, to
+    };
+  },
+
   render() {
-    const today = new Date().toDateString();
-    const tx = db.transactions.filter(t => t.date === today);
-    const roomTx = db.roomCharges.filter(t => t.date === today);
+    const fEl = document.getElementById('rptFrom'); const tEl = document.getElementById('rptTo');
+    if (fEl && !fEl.value && this.preset !== 'custom') { const r = this._computeRange(); fEl.value = this._fmtISO(r.from); tEl.value = this._fmtISO(r.to); }
+    const { tx, roomTx, from, to } = this._filterTx();
     const allTx = [...tx, ...roomTx].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const revenue = allTx.reduce((s, t) => s + t.total, 0);
     const tips = allTx.reduce((s, t) => s + (t.tip || 0), 0);
-    const items = allTx.reduce((s, t) => s + t.items.reduce((a, b) => a + b.qty, 0), 0);
+    const itemsCount = allTx.reduce((s, t) => s + t.items.reduce((a, b) => a + b.qty, 0), 0);
+    const title = document.getElementById('rptTitle');
+    if (title) {
+      const sameDay = from.toDateString() === to.toDateString();
+      title.textContent = sameDay ? `Report — ${from.toLocaleDateString()}` : `Report — ${from.toLocaleDateString()} → ${to.toLocaleDateString()}`;
+    }
     document.getElementById('rptRevenue').textContent = '$' + revenue.toFixed(0);
     document.getElementById('rptTips').textContent = '$' + tips.toFixed(0);
-    document.getElementById('rptItems').textContent = items;
+    document.getElementById('rptItems').textContent = itemsCount;
     document.getElementById('rptTrans').textContent = allTx.length;
     document.getElementById('rptCard').textContent = '$' + tx.filter(t => t.type === 'card').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptCash').textContent = '$' + tx.filter(t => t.type === 'cash').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptBody').innerHTML = allTx.map(t => {
-      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${t.roomName}</span>` :
+      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${esc(t.roomName || 'Room')}</span>` :
         t.type === 'card' ? '<span class="badge badge-purple">Card</span>' : '<span class="badge badge-success">Cash</span>';
       return `<tr>
-        <td>${new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td>${t.employee}</td>
+        <td>${new Date(t.timestamp).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
+        <td>${esc(t.employee)}</td>
         <td>${typeLabel}</td>
-        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
-        <td style="font-family:var(--font-mono);">$${(t.subtotal + t.tax).toFixed(2)}</td>
+        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
+        <td style="font-family:var(--font-mono);">$${(t.subtotal + (t.salesTax || t.tax || 0) + (t.bourbonTax || 0)).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);color:var(--success);">${t.tip ? '$' + t.tip.toFixed(0) : '-'}</td>
         <td style="font-family:var(--font-mono);color:var(--amber-300);font-weight:600;">$${t.total.toFixed(2)}</td>
+        <td><button class="btn-sm" onclick="Receipt.showById('${esc(t.id)}')" style="padding:4px 8px;font-size:10px;">Receipt</button></td>
       </tr>`;
     }).join('');
+
+    this.renderHeatmap(allTx);
+    this.renderMix(allTx);
+    this.renderPourCost(allTx);
+  },
+
+  renderHeatmap(allTx) {
+    const el = document.getElementById('rptHeatmap');
+    if (!el) return;
+    const hours = Array.from({length:24}, () => ({ rev: 0, count: 0 }));
+    allTx.forEach(t => { const h = new Date(t.timestamp).getHours(); hours[h].rev += t.total; hours[h].count++; });
+    const max = Math.max(1, ...hours.map(h => h.rev));
+    el.innerHTML = '<div style="color:var(--text-muted);">Hour</div><div style="color:var(--text-muted);">Revenue</div><div style="color:var(--text-muted);text-align:right;">$</div><div style="color:var(--text-muted);text-align:right;">#</div>' +
+      hours.map((h, i) => {
+        const pct = (h.rev / max) * 100;
+        const label = (i % 12 === 0 ? 12 : i % 12) + (i < 12 ? 'a' : 'p');
+        return `<div>${label}</div>` +
+          `<div style="background:var(--bg-elevated);border-radius:4px;overflow:hidden;"><div style="background:var(--amber-500);height:16px;width:${pct}%;"></div></div>` +
+          `<div style="text-align:right;">$${h.rev.toFixed(0)}</div>` +
+          `<div style="text-align:right;color:var(--text-muted);">${h.count}</div>`;
+      }).join('');
+  },
+
+  renderMix(allTx) {
+    const mix = {};
+    let totalRev = 0;
+    allTx.forEach(t => t.items.forEach(i => {
+      const key = i.pid || ('sp_' + i.name);
+      const rev = (i.basePrice + (i.extra || 0)) * i.qty;
+      totalRev += rev;
+      if (!mix[key]) mix[key] = { name: i.name, qty: 0, rev: 0 };
+      mix[key].qty += i.qty;
+      mix[key].rev += rev;
+    }));
+    const sold = Object.values(mix).sort((a, b) => b.qty - a.qty);
+    document.getElementById('rptMixBody').innerHTML = sold.length ? sold.map(m => `<tr>
+      <td>${esc(m.name)}</td>
+      <td style="font-family:var(--font-mono);">${m.qty}</td>
+      <td style="font-family:var(--font-mono);">$${m.rev.toFixed(2)}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted);">${totalRev ? ((m.rev/totalRev)*100).toFixed(1) : '0'}%</td>
+    </tr>`).join('') : '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:14px;">No sales in range</td></tr>';
+
+    const soldIds = new Set(sold.map(s => Object.keys(mix).find(k => mix[k] === s)).filter(Boolean));
+    const dead = db.products.filter(p => !soldIds.has(p.id) && !p.eightySixed);
+    const deadEl = document.getElementById('rptDead');
+    deadEl.innerHTML = dead.length ? dead.slice(0, 100).map(p => `<span style="display:inline-block;padding:4px 8px;margin:3px;background:var(--bg-elevated);border:1px solid var(--border-subtle);border-radius:4px;">${esc(p.emoji || '')} ${esc(p.name)}</span>`).join('') + (dead.length > 100 ? `<p style="margin-top:8px;">…and ${dead.length - 100} more</p>` : '') : '<em>All active SKUs sold in this range.</em>';
+  },
+
+  _liquorCats: ['well','call','premium','topshelf','rare'],
+  _cocktailCats: ['cocktail','cocktails','flight','flights'],
+
+  _itemCost(item) {
+    const p = db.products.find(x => x.id === item.pid);
+    if (!p) return 0;
+    const cat = (p.category || '').toLowerCase();
+    // Liquor with bottle cost
+    if (Reports._liquorCats.includes(cat) && p.bottleCost) {
+      const bottleMl = p.bottleSize || 750;
+      const bottleOz = bottleMl / 29.5735;
+      let pourOz = p.pourSize || 1.5;
+      // parse mod for oz
+      const m = (item.mod || '').match(/([\d.]+)\s*oz/i);
+      if (m) pourOz = parseFloat(m[1]);
+      const costPerPour = p.bottleCost / (bottleOz / pourOz);
+      return costPerPour * item.qty;
+    }
+    // Cocktails / flights
+    if (Reports._cocktailCats.includes(cat)) {
+      const defaultCost = db.settings.cocktailCostDefault != null ? db.settings.cocktailCostDefault : 3;
+      return defaultCost * item.qty;
+    }
+    return 0;
+  },
+
+  _itemIsPourable(item) {
+    const p = db.products.find(x => x.id === item.pid);
+    if (!p) return false;
+    const cat = (p.category || '').toLowerCase();
+    return Reports._liquorCats.includes(cat) || Reports._cocktailCats.includes(cat);
+  },
+
+  renderPourCost(allTx) {
+    const agg = {};
+    let totalRev = 0, totalCost = 0;
+    allTx.forEach(t => t.items.forEach(i => {
+      if (!Reports._itemIsPourable(i)) return;
+      const key = i.pid || ('sp_' + i.name);
+      const rev = (i.basePrice + (i.extra || 0)) * i.qty;
+      const cost = Reports._itemCost(i);
+      totalRev += rev; totalCost += cost;
+      if (!agg[key]) agg[key] = { name: i.name, qty: 0, rev: 0, cost: 0 };
+      agg[key].qty += i.qty;
+      agg[key].rev += rev;
+      agg[key].cost += cost;
+    }));
+    document.getElementById('pcRevenue').textContent = '$' + totalRev.toFixed(0);
+    document.getElementById('pcCost').textContent = '$' + totalCost.toFixed(0);
+    document.getElementById('pcMargin').textContent = '$' + (totalRev - totalCost).toFixed(0);
+    document.getElementById('pcPct').textContent = (totalRev ? ((totalCost/totalRev)*100).toFixed(1) : '0') + '%';
+    const rows = Object.values(agg).sort((a,b) => b.rev - a.rev);
+    document.getElementById('rptPourBody').innerHTML = rows.length ? rows.map(r => {
+      const margin = r.rev - r.cost;
+      const pct = r.rev ? (margin / r.rev) * 100 : 0;
+      return `<tr>
+        <td>${esc(r.name)}</td>
+        <td style="font-family:var(--font-mono);">${r.qty}</td>
+        <td style="font-family:var(--font-mono);">$${r.rev.toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);color:var(--danger);">~$${r.cost.toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);color:var(--success);">$${margin.toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);">${pct.toFixed(0)}%</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:14px;">No liquor/cocktail sales in range</td></tr>';
+  }
+};
+
+/* ═══════════════════════════════════════════
+   TIME CLOCK / TIMESHEET
+   ═══════════════════════════════════════════ */
+const TimeClock = {
+  preset: 'today',
+  from: null,
+  to: null,
+
+  _openFor(empId) {
+    return db.timeClock.find(e => e.employeeId === empId && !e.clockOut);
+  },
+
+  toggle() {
+    if (!currentEmployee) { toast('Sign in first', 'error'); return; }
+    const open = this._openFor(currentEmployee.id);
+    const now = new Date();
+    if (open) {
+      open.clockOut = now.toISOString();
+      open.hours = Math.max(0, (new Date(open.clockOut) - new Date(open.clockIn)) / 3600000);
+      saveDB();
+      logAudit('timeclock', `${currentEmployee.name} clocked OUT (${open.hours.toFixed(2)}h)`);
+      toast(`Clocked out — ${open.hours.toFixed(2)}h`);
+    } else {
+      db.timeClock.push({ id: uid(), employeeId: currentEmployee.id, employeeName: currentEmployee.name, clockIn: now.toISOString() });
+      saveDB();
+      logAudit('timeclock', `${currentEmployee.name} clocked IN`);
+      toast('Clocked in');
+    }
+    this.refreshBadge();
+    if (App.currentView === 'timesheet') this.renderView();
+  },
+
+  refreshBadge() {
+    const btn = document.getElementById('hdrClockBtn');
+    if (!btn) return;
+    const open = currentEmployee ? this._openFor(currentEmployee.id) : null;
+    btn.textContent = open ? '⏱ OUT' : '⏱';
+    btn.style.color = open ? 'var(--success)' : '';
+  },
+
+  setPreset(p) {
+    this.preset = p;
+    document.querySelectorAll('.ts-preset').forEach(b => b.classList.toggle('active', b.dataset.preset === p));
+    if (p !== 'custom') {
+      const { from, to } = this._computeRange();
+      const fEl = document.getElementById('tsFrom'); const tEl = document.getElementById('tsTo');
+      if (fEl) fEl.value = Reports._fmtISO(from);
+      if (tEl) tEl.value = Reports._fmtISO(to);
+    }
+    this.renderView();
+  },
+
+  _computeRange() {
+    const now = new Date();
+    let from, to;
+    if (this.preset === 'today') { from = Reports._startOfDay(now); to = Reports._endOfDay(now); }
+    else if (this.preset === 'yesterday') { const y = new Date(now); y.setDate(y.getDate()-1); from = Reports._startOfDay(y); to = Reports._endOfDay(y); }
+    else if (this.preset === '7d') { const y = new Date(now); y.setDate(y.getDate()-6); from = Reports._startOfDay(y); to = Reports._endOfDay(now); }
+    else if (this.preset === '30d') { const y = new Date(now); y.setDate(y.getDate()-29); from = Reports._startOfDay(y); to = Reports._endOfDay(now); }
+    else if (this.preset === 'mtd') { const y = new Date(now.getFullYear(), now.getMonth(), 1); from = Reports._startOfDay(y); to = Reports._endOfDay(now); }
+    else if (this.preset === 'custom') {
+      const f = document.getElementById('tsFrom').value;
+      const t = document.getElementById('tsTo').value;
+      from = f ? Reports._startOfDay(new Date(f + 'T00:00:00')) : Reports._startOfDay(now);
+      to = t ? Reports._endOfDay(new Date(t + 'T00:00:00')) : Reports._endOfDay(now);
+    }
+    this.from = from; this.to = to;
+    return { from, to };
+  },
+
+  renderView() {
+    this.refreshBadge();
+    const fEl = document.getElementById('tsFrom'); const tEl = document.getElementById('tsTo');
+    if (fEl && !fEl.value && this.preset !== 'custom') { const r = this._computeRange(); fEl.value = Reports._fmtISO(r.from); tEl.value = Reports._fmtISO(r.to); }
+    const { from, to } = this._computeRange();
+    const fromMs = from.getTime(), toMs = to.getTime();
+    const entries = db.timeClock.filter(e => {
+      const ts = new Date(e.clockIn).getTime();
+      return ts >= fromMs && ts <= toMs;
+    }).sort((a,b) => new Date(b.clockIn) - new Date(a.clockIn));
+    const totals = {};
+    entries.forEach(e => {
+      const hrs = e.hours != null ? e.hours : (e.clockOut ? (new Date(e.clockOut)-new Date(e.clockIn))/3600000 : 0);
+      if (!totals[e.employeeId]) totals[e.employeeId] = { name: e.employeeName, shifts: 0, hours: 0 };
+      totals[e.employeeId].shifts++;
+      totals[e.employeeId].hours += hrs;
+    });
+    const totalsRows = Object.values(totals).sort((a,b) => b.hours - a.hours);
+    document.getElementById('tsTotalsBody').innerHTML = totalsRows.length ? totalsRows.map(t => `<tr>
+      <td>${esc(t.name)}</td>
+      <td style="font-family:var(--font-mono);">${t.shifts}</td>
+      <td style="font-family:var(--font-mono);color:var(--amber-300);">${t.hours.toFixed(2)}</td>
+    </tr>`).join('') : '<tr><td colspan="3" style="color:var(--text-muted);text-align:center;padding:14px;">No entries in range</td></tr>';
+    document.getElementById('tsEntriesBody').innerHTML = entries.length ? entries.map(e => {
+      const inStr = new Date(e.clockIn).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      const outStr = e.clockOut ? new Date(e.clockOut).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '<em style="color:var(--warning);">open</em>';
+      const hrs = e.hours != null ? e.hours.toFixed(2) : (e.clockOut ? ((new Date(e.clockOut)-new Date(e.clockIn))/3600000).toFixed(2) : '—');
+      return `<tr>
+        <td>${esc(e.employeeName)}</td>
+        <td>${inStr}</td>
+        <td>${outStr}</td>
+        <td style="font-family:var(--font-mono);">${hrs}</td>
+        <td><button class="btn-sm" onclick="TimeClock.edit('${esc(e.id)}')" style="padding:3px 6px;">Edit</button> <button class="btn-sm btn-danger" onclick="TimeClock.remove('${esc(e.id)}')" style="padding:3px 6px;">✕</button></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:14px;">No entries in range</td></tr>';
+  },
+
+  edit(id) {
+    const e = db.timeClock.find(x => x.id === id);
+    if (!e) return;
+    const inVal = prompt('Clock In (YYYY-MM-DD HH:MM):', new Date(e.clockIn).toISOString().slice(0,16).replace('T',' '));
+    if (inVal == null) return;
+    const outVal = prompt('Clock Out (YYYY-MM-DD HH:MM, blank = open):', e.clockOut ? new Date(e.clockOut).toISOString().slice(0,16).replace('T',' ') : '');
+    if (outVal == null) return;
+    const newIn = new Date(inVal.replace(' ', 'T'));
+    if (isNaN(newIn)) { toast('Invalid clock-in', 'error'); return; }
+    e.clockIn = newIn.toISOString();
+    if (outVal.trim()) {
+      const newOut = new Date(outVal.replace(' ', 'T'));
+      if (isNaN(newOut)) { toast('Invalid clock-out', 'error'); return; }
+      e.clockOut = newOut.toISOString();
+      e.hours = Math.max(0, (newOut - newIn) / 3600000);
+    } else {
+      delete e.clockOut; delete e.hours;
+    }
+    saveDB();
+    logAudit('timeclock', `Edited timeclock entry for ${e.employeeName}`);
+    this.renderView();
+    toast('Updated');
+  },
+
+  remove(id) {
+    const e = db.timeClock.find(x => x.id === id);
+    if (!e) return;
+    if (!confirm(`Delete timeclock entry for ${e.employeeName}?`)) return;
+    db.timeClock = db.timeClock.filter(x => x.id !== id);
+    saveDB();
+    logAudit('timeclock', `Deleted timeclock entry for ${e.employeeName}`);
+    this.renderView();
   }
 };
 
@@ -2983,11 +3676,11 @@ const Voids = {
     document.getElementById('voidValue').textContent = '$' + todayVoids.reduce((s, v) => s + v.total, 0).toFixed(0);
     document.getElementById('voidBody').innerHTML = db.voidedSales.slice(-50).reverse().map(v => `<tr class="voided">
       <td>${new Date(v.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-      <td><strong>${v.employee}</strong></td>
-      <td style="font-size:11px;">${v.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+      <td><strong>${esc(v.employee)}</strong></td>
+      <td style="font-size:11px;">${v.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
       <td style="font-family:var(--font-mono);color:var(--danger);font-weight:600;">$${v.total.toFixed(2)}</td>
-      <td><span class="badge badge-danger">${v.reason}</span></td>
-      <td style="font-size:11px;color:var(--text-muted);">${v.notes || '-'}</td>
+      <td><span class="badge badge-danger">${esc(v.reason)}</span></td>
+      <td style="font-size:11px;color:var(--text-muted);">${esc(v.notes || '-')}</td>
     </tr>`).join('');
   }
 };
@@ -3002,6 +3695,8 @@ const Settings = {
     db.settings.taxRate = parseFloat(document.getElementById('setTax').value) || 6;
     db.settings.bourbonTaxRate = parseFloat(document.getElementById('setBourbonTax').value) || 0;
     db.settings.name = document.getElementById('setName').value;
+    const ccEl = document.getElementById('setCocktailCost');
+    if (ccEl) db.settings.cocktailCostDefault = Math.max(0, parseFloat(ccEl.value) || 0);
     saveDB();
     if (oldTax !== db.settings.taxRate) logAudit('settings', `Sales tax: ${oldTax}% → ${db.settings.taxRate}%`);
     if (oldBourbonTax !== db.settings.bourbonTaxRate) logAudit('settings', `Bardstown liquor tax: ${oldBourbonTax}% → ${db.settings.bourbonTaxRate}%`);
@@ -3011,8 +3706,8 @@ const Settings = {
   renderCats() {
     document.getElementById('catManager').innerHTML = db.categories.map((c, i) =>
       `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border-subtle);">
-        <span style="font-size:18px;">${c.icon}</span>
-        <span style="flex:1;font-weight:500;font-size:13px;">${c.name}</span>
+        <span style="font-size:18px;">${esc(c.icon)}</span>
+        <span style="flex:1;font-weight:500;font-size:13px;">${esc(c.name)}</span>
         <button class="btn-sm btn-danger" onclick="Settings.removeCat(${i})" style="padding:3px 6px;">✕</button>
       </div>`
     ).join('');
@@ -3124,8 +3819,8 @@ const Settings = {
       if (updated > 0) msg.push(`Updated ${updated} prices`);
       logAudit('inventory', msg.join(', '));
       toast(msg.join(', ') + '!');
-      POS.renderProducts();
-      Inventory.render();
+      POS.render();
+      Inv.render();
     } else {
       toast('All bourbons up to date!');
     }
