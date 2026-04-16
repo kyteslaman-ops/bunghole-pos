@@ -751,6 +751,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <button class="nav-tab" data-view="inventory" onclick="App.showView('inventory')">Inventory</button>
       <button class="nav-tab" data-view="rooms" onclick="App.showView('rooms')">Rooms</button>
       <button class="nav-tab manager-only" data-view="reports" onclick="App.authManagerView('reports')">Reports<span class="lock-icon">🔒</span></button>
+      <button class="nav-tab manager-only" data-view="drawer" onclick="App.authManagerView('drawer')">Drawer<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="voids" onclick="App.authManagerView('voids')">Voids<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="audit" onclick="App.authManagerView('audit')">Audit<span class="lock-icon">🔒</span></button>
       <button class="nav-tab manager-only" data-view="settings" onclick="App.authManagerView('settings')">Settings<span class="lock-icon">🔒</span></button>
@@ -860,6 +861,32 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         <thead><tr><th>Time</th><th>Employee</th><th>Event</th><th>Details</th></tr></thead>
         <tbody id="auditBody"></tbody>
       </table>
+    </div>
+
+    <!-- DRAWER VIEW -->
+    <div class="view" id="view-drawer">
+      <div class="view-header">
+        <div class="view-title">💰 Cash Drawer & Shifts</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm btn-gold" onclick="Drawer.openShiftModal()">🟢 Open Shift</button>
+          <button class="btn-sm" onclick="Drawer.paidInOutModal('in')">⬇ Paid In</button>
+          <button class="btn-sm" onclick="Drawer.paidInOutModal('out')">⬆ Paid Out</button>
+          <button class="btn-sm btn-danger" onclick="Drawer.closeShiftModal()">🔴 Close Shift</button>
+        </div>
+      </div>
+      <div id="drawerStatus" style="margin-bottom:16px;"></div>
+      <div class="settings-section">
+        <h3>Shift Events</h3>
+        <div id="drawerEvents" style="font-family:var(--font-mono);font-size:12px;"></div>
+      </div>
+      <div class="settings-section">
+        <h3>Closed Shifts</h3>
+        <div id="shiftHistory" style="font-size:12px;"></div>
+      </div>
+      <div class="settings-section">
+        <h3>Tip-Out History</h3>
+        <div id="tipOutHistory" style="font-size:12px;"></div>
+      </div>
     </div>
 
     <!-- SETTINGS VIEW -->
@@ -1194,6 +1221,56 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
   </div>
 </div>
 
+<!-- OPEN SHIFT MODAL -->
+<div class="modal-overlay" id="modalOpenShift">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head"><h2>🟢 Open Shift</h2><button class="modal-close" onclick="Modal.close('modalOpenShift')">&times;</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Count opening float cash and enter amount.</p>
+      <div class="form-row"><label class="form-label">Opening Float ($)</label><input type="number" id="openingFloat" placeholder="200.00" step="0.01" min="0"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Drawer.openShift()" style="padding:14px;margin-top:12px;">Open Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAID IN/OUT MODAL -->
+<div class="modal-overlay" id="modalPaidIO">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head"><h2 id="paidIOTitle">Paid In</h2><button class="modal-close" onclick="Modal.close('modalPaidIO')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label class="form-label">Amount ($)</label><input type="number" id="paidIOAmount" placeholder="25.00" step="0.01" min="0"></div>
+      <div class="form-row"><label class="form-label">Reason</label><input type="text" id="paidIOReason" placeholder="e.g., Cleaning supplies"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Drawer.savePaidIO()" style="padding:14px;margin-top:12px;">Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE SHIFT MODAL -->
+<div class="modal-overlay" id="modalCloseShift">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-head"><h2>🔴 Close Shift</h2><button class="modal-close" onclick="Modal.close('modalCloseShift')">&times;</button></div>
+    <div class="modal-body">
+      <div id="closeShiftSummary" style="font-family:var(--font-mono);font-size:13px;line-height:1.8;margin-bottom:12px;"></div>
+      <div class="form-row"><label class="form-label">Counted Cash ($)</label><input type="number" id="countedCash" placeholder="0.00" step="0.01" oninput="Drawer.updateVariance()"></div>
+      <div id="varianceDisplay" style="margin:8px 0;font-weight:600;"></div>
+      <div class="form-row" id="varReasonRow" style="display:none;"><label class="form-label">Variance Reason (required)</label><input type="text" id="varianceReason" placeholder="e.g., till short"></div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg-elevated);border-radius:6px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="runTipPool" checked> Allocate tip pool now</label>
+        <div id="tipPoolSection" style="margin-top:10px;">
+          <div class="form-row"><label class="form-label">Split Method</label>
+            <select id="tipSplitMethod" onchange="Drawer.renderTipSplit()">
+              <option value="equal">Equal share per employee</option>
+              <option value="percent">Manual % per employee</option>
+            </select>
+          </div>
+          <div id="tipSplitBody" style="font-size:12px;"></div>
+        </div>
+      </div>
+      <button class="btn-sm btn-danger btn-full" onclick="Drawer.closeShift()" style="padding:14px;margin-top:12px;">Close Shift & Generate Z-Report</button>
+    </div>
+  </div>
+</div>
+
 <!-- HIDDEN RECEIPT FOR PRINT -->
 <div class="receipt-print" id="receiptPrint"></div>
 
@@ -1245,7 +1322,10 @@ let db = {
   roomCharges: [],
   voidedSales: [],
   auditLog: [],
-  settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' }
+  settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' },
+  cashDrawer: null,
+  shifts: [],
+  tipOuts: []
 };
 
 const CATALOG_VERSION = 2; // bump when seedData adds new defaults
@@ -1259,6 +1339,9 @@ function loadDB() {
       if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }];
       if (!db.voidedSales) db.voidedSales = [];
       if (!db.auditLog) db.auditLog = [];
+      if (!db.shifts) db.shifts = [];
+      if (!db.tipOuts) db.tipOuts = [];
+      if (db.cashDrawer === undefined) db.cashDrawer = null;
       if (db.catalogVersion == null) db.catalogVersion = 0;
     }
   } catch(e) { console.error(e); }
@@ -1639,6 +1722,7 @@ const App = {
     if (v === 'voids') Voids.render();
     if (v === 'audit') Audit.render();
     if (v === 'settings') { Settings.renderCats(); Employees.render(); }
+    if (v === 'drawer') Drawer.render();
   },
 
   authManagerView(v) {
@@ -3335,6 +3419,347 @@ const Settings = {
     if (!confirm('SURE?')) return;
     localStorage.removeItem(DB_KEY);
     location.reload();
+  }
+};
+
+/* ═══════════════════════════════════════════
+   CASH DRAWER / SHIFTS / TIP-OUTS
+   ═══════════════════════════════════════════ */
+const Drawer = {
+  _requireManager() {
+    if (currentEmployee?.role !== 'manager') { toast('Manager access required', 'error'); return false; }
+    return true;
+  },
+  shiftWindow(d) {
+    const start = new Date(d.openedAt).getTime();
+    const end = d.closedAt ? new Date(d.closedAt).getTime() : Date.now();
+    return { start, end };
+  },
+  shiftTx(d) {
+    const { start, end } = Drawer.shiftWindow(d);
+    const inRange = t => { const ts = new Date(t.timestamp).getTime(); return ts >= start && ts <= end; };
+    const tx = db.transactions.filter(inRange);
+    const room = db.roomCharges.filter(inRange);
+    return { tx, room, all: [...tx, ...room] };
+  },
+  totals(d) {
+    const { tx, room, all } = Drawer.shiftTx(d);
+    const cashSales = tx.filter(t => t.type === 'cash').reduce((s, t) => s + t.total, 0);
+    const cardSales = tx.filter(t => t.type === 'card').reduce((s, t) => s + t.total, 0);
+    const roomSales = room.reduce((s, t) => s + t.total, 0);
+    const tips = all.reduce((s, t) => s + (t.tip || 0), 0);
+    const events = d.events || [];
+    const paidIn = events.filter(e => e.type === 'in').reduce((s, e) => s + e.amount, 0);
+    const paidOut = events.filter(e => e.type === 'out').reduce((s, e) => s + e.amount, 0);
+    const expected = (d.openingAmount || 0) + cashSales + paidIn - paidOut;
+    return { cashSales, cardSales, roomSales, tips, paidIn, paidOut, expected, txCount: all.length };
+  },
+  render() {
+    const el = document.getElementById('drawerStatus');
+    if (!el) return;
+    const d = db.cashDrawer;
+    if (!d) {
+      el.innerHTML = `<div class="settings-section" style="text-align:center;"><p style="color:var(--text-muted);margin-bottom:8px;">No active shift.</p><p style="font-size:12px;color:var(--text-muted);">Click "Open Shift" to begin.</p></div>`;
+      document.getElementById('drawerEvents').innerHTML = '<em style="color:var(--text-muted);">No active shift</em>';
+    } else {
+      const t = Drawer.totals(d);
+      el.innerHTML = `<div class="settings-section">
+        <h3>🟢 Active Shift</h3>
+        <div style="font-family:var(--font-mono);font-size:13px;line-height:1.9;">
+          <div>Opened: ${new Date(d.openedAt).toLocaleString()} by ${esc(d.openedBy)}</div>
+          <div>Opening Float: <strong>$${d.openingAmount.toFixed(2)}</strong></div>
+          <div>Cash Sales: $${t.cashSales.toFixed(2)}</div>
+          <div>Card Sales: $${t.cardSales.toFixed(2)} • Room: $${t.roomSales.toFixed(2)}</div>
+          <div>Paid In: $${t.paidIn.toFixed(2)} • Paid Out: $${t.paidOut.toFixed(2)}</div>
+          <div>Tips (pool): $${t.tips.toFixed(2)} • Tx: ${t.txCount}</div>
+          <div style="color:var(--amber-300);font-size:16px;margin-top:6px;"><strong>Expected Cash: $${t.expected.toFixed(2)}</strong></div>
+        </div>
+      </div>`;
+      const events = (d.events || []).slice().reverse();
+      document.getElementById('drawerEvents').innerHTML = events.length
+        ? events.map(e => `<div style="padding:4px 0;border-bottom:1px solid var(--border-subtle);">${new Date(e.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} • <span style="color:${e.type==='in'?'var(--success)':'var(--danger)'};">${e.type==='in'?'IN':'OUT'}</span> $${e.amount.toFixed(2)} — ${esc(e.reason)} <span style="color:var(--text-muted);">(${esc(e.employee)})</span></div>`).join('')
+        : '<em style="color:var(--text-muted);">No events yet</em>';
+    }
+    const shifts = (db.shifts || []).slice().reverse().slice(0, 10);
+    document.getElementById('shiftHistory').innerHTML = shifts.length
+      ? shifts.map(s => `<div style="padding:6px 0;border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);">
+          <div><strong>${new Date(s.openedAt).toLocaleDateString()}</strong> ${new Date(s.openedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} → ${new Date(s.closedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:11px;">Open $${s.openingAmount.toFixed(2)} • Cash sales $${s.cashSales.toFixed(2)} • Expected $${s.expected.toFixed(2)} • Counted $${s.counted.toFixed(2)} • <span style="color:${Math.abs(s.variance)<0.01?'var(--success)':'var(--danger)'};">Var $${s.variance.toFixed(2)}</span></div>
+          ${s.varianceReason ? `<div style="font-size:11px;color:var(--text-muted);">Reason: ${esc(s.varianceReason)}</div>` : ''}
+          <div style="font-size:11px;color:var(--text-muted);">Closed by ${esc(s.closedBy)} • Tip pool $${(s.tipPoolAmount||0).toFixed(2)}</div>
+          <button class="btn-sm" style="margin-top:4px;" onclick="Drawer.zReportFor('${s.id}')">📊 Z-Report</button>
+          ${(!s.tipAllocations || !s.tipAllocations.length) ? `<button class="btn-sm btn-gold" style="margin-top:4px;" onclick="Drawer.tipOutModal('${s.id}')">Allocate Tips</button>` : ''}
+        </div>`).join('')
+      : '<em style="color:var(--text-muted);">No closed shifts</em>';
+    const tipOuts = (db.tipOuts || []).slice().reverse().slice(0, 10);
+    document.getElementById('tipOutHistory').innerHTML = tipOuts.length
+      ? tipOuts.map(to => `<div style="padding:6px 0;border-bottom:1px solid var(--border-subtle);font-family:var(--font-mono);">
+          <div>${new Date(to.ts).toLocaleString()}</div>
+          ${to.allocations.map(a => `<div style="font-size:11px;">${esc(a.name)}: $${a.amount.toFixed(2)}</div>`).join('')}
+        </div>`).join('')
+      : '<em style="color:var(--text-muted);">No tip-outs recorded</em>';
+  },
+  openShiftModal() {
+    if (!Drawer._requireManager()) return;
+    if (db.cashDrawer) { toast('Shift already open', 'error'); return; }
+    document.getElementById('openingFloat').value = '';
+    Modal.open('modalOpenShift');
+  },
+  openShift() {
+    if (!Drawer._requireManager()) return;
+    const amt = parseFloat(document.getElementById('openingFloat').value);
+    if (isNaN(amt) || amt < 0) { toast('Enter valid amount', 'error'); return; }
+    db.cashDrawer = {
+      id: uid(),
+      openedAt: new Date().toISOString(),
+      openedBy: currentEmployee.name,
+      openedById: currentEmployee.id,
+      openingAmount: amt,
+      events: []
+    };
+    saveDB();
+    logAudit('drawer', `Opened shift with $${amt.toFixed(2)} float`);
+    Modal.close('modalOpenShift');
+    toast('Shift opened');
+    Drawer.render();
+  },
+  paidInOutModal(type) {
+    if (!Drawer._requireManager()) return;
+    if (!db.cashDrawer) { toast('Open a shift first', 'error'); return; }
+    Drawer._pioType = type;
+    document.getElementById('paidIOTitle').textContent = type === 'in' ? '⬇ Paid In' : '⬆ Paid Out';
+    document.getElementById('paidIOAmount').value = '';
+    document.getElementById('paidIOReason').value = '';
+    Modal.open('modalPaidIO');
+  },
+  savePaidIO() {
+    if (!Drawer._requireManager()) return;
+    const d = db.cashDrawer;
+    if (!d) { toast('No active shift', 'error'); return; }
+    const amt = parseFloat(document.getElementById('paidIOAmount').value);
+    const reason = document.getElementById('paidIOReason').value.trim();
+    if (isNaN(amt) || amt <= 0) { toast('Enter valid amount', 'error'); return; }
+    if (!reason) { toast('Reason required', 'error'); return; }
+    d.events.push({
+      ts: new Date().toISOString(),
+      type: Drawer._pioType,
+      amount: amt,
+      reason,
+      employee: currentEmployee.name
+    });
+    saveDB();
+    logAudit('drawer', `Paid ${Drawer._pioType === 'in' ? 'IN' : 'OUT'} $${amt.toFixed(2)}: ${reason}`);
+    Modal.close('modalPaidIO');
+    toast('Recorded');
+    Drawer.render();
+  },
+  closeShiftModal() {
+    if (!Drawer._requireManager()) return;
+    const d = db.cashDrawer;
+    if (!d) { toast('No active shift', 'error'); return; }
+    const t = Drawer.totals(d);
+    Drawer._closeTotals = t;
+    document.getElementById('closeShiftSummary').innerHTML = `
+      <div>Opening Float: $${d.openingAmount.toFixed(2)}</div>
+      <div>+ Cash Sales: $${t.cashSales.toFixed(2)}</div>
+      <div>+ Paid In: $${t.paidIn.toFixed(2)}</div>
+      <div>− Paid Out: $${t.paidOut.toFixed(2)}</div>
+      <div style="color:var(--amber-300);"><strong>Expected: $${t.expected.toFixed(2)}</strong></div>
+      <div style="font-size:11px;color:var(--text-muted);">Tip pool: $${t.tips.toFixed(2)}</div>
+    `;
+    document.getElementById('countedCash').value = '';
+    document.getElementById('varianceReason').value = '';
+    document.getElementById('varianceDisplay').textContent = '';
+    document.getElementById('varReasonRow').style.display = 'none';
+    document.getElementById('runTipPool').checked = true;
+    document.getElementById('tipSplitMethod').value = 'equal';
+    Drawer.renderTipSplit();
+    Modal.open('modalCloseShift');
+  },
+  updateVariance() {
+    const t = Drawer._closeTotals;
+    if (!t) return;
+    const counted = parseFloat(document.getElementById('countedCash').value) || 0;
+    const variance = counted - t.expected;
+    const el = document.getElementById('varianceDisplay');
+    el.textContent = `Variance: $${variance.toFixed(2)} ${variance < 0 ? '(short)' : variance > 0 ? '(over)' : ''}`;
+    el.style.color = Math.abs(variance) < 0.01 ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('varReasonRow').style.display = Math.abs(variance) >= 0.01 ? '' : 'none';
+  },
+  renderTipSplit() {
+    const d = db.cashDrawer;
+    if (!d) return;
+    const t = Drawer._closeTotals || Drawer.totals(d);
+    const { all } = Drawer.shiftTx(d);
+    const empIds = new Set();
+    all.forEach(x => { if (x.employeeId) empIds.add(x.employeeId); });
+    const emps = db.employees.filter(e => empIds.has(e.id) && e.active !== false);
+    if (!emps.length) {
+      document.getElementById('tipSplitBody').innerHTML = '<em style="color:var(--text-muted);">No employees with sales this shift</em>';
+      return;
+    }
+    const method = document.getElementById('tipSplitMethod').value;
+    if (method === 'equal') {
+      const share = emps.length ? (t.tips / emps.length) : 0;
+      document.getElementById('tipSplitBody').innerHTML = emps.map(e => `<div>${esc(e.name)}: $${share.toFixed(2)}</div>`).join('');
+    } else {
+      document.getElementById('tipSplitBody').innerHTML = emps.map(e => `
+        <div style="display:flex;gap:6px;align-items:center;margin:4px 0;">
+          <span style="flex:1;">${esc(e.name)}</span>
+          <input type="number" class="tipPct" data-empid="${e.id}" data-name="${esc(e.name)}" placeholder="%" min="0" max="100" step="0.1" style="width:70px;">
+        </div>`).join('') + `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Total pool $${t.tips.toFixed(2)} — percentages must sum to 100.</div>`;
+    }
+  },
+  _computeAllocations() {
+    const d = db.cashDrawer;
+    const t = Drawer._closeTotals || Drawer.totals(d);
+    if (!document.getElementById('runTipPool').checked) return { allocations: [], pool: t.tips };
+    const method = document.getElementById('tipSplitMethod').value;
+    const { all } = Drawer.shiftTx(d);
+    const empIds = new Set();
+    all.forEach(x => { if (x.employeeId) empIds.add(x.employeeId); });
+    const emps = db.employees.filter(e => empIds.has(e.id) && e.active !== false);
+    if (!emps.length) return { allocations: [], pool: t.tips };
+    if (method === 'equal') {
+      const share = t.tips / emps.length;
+      return { allocations: emps.map(e => ({ employeeId: e.id, name: e.name, amount: +share.toFixed(2) })), pool: t.tips };
+    }
+    const inputs = Array.from(document.querySelectorAll('.tipPct'));
+    const pcts = inputs.map(i => ({ employeeId: i.dataset.empid, name: i.dataset.name, pct: parseFloat(i.value) || 0 }));
+    const sum = pcts.reduce((s, p) => s + p.pct, 0);
+    if (Math.abs(sum - 100) > 0.1) return { error: `Percentages sum to ${sum.toFixed(1)}%, must be 100%`, pool: t.tips };
+    return { allocations: pcts.map(p => ({ employeeId: p.employeeId, name: p.name, amount: +(t.tips * p.pct / 100).toFixed(2) })), pool: t.tips };
+  },
+  closeShift() {
+    if (!Drawer._requireManager()) return;
+    const d = db.cashDrawer;
+    if (!d) { toast('No active shift', 'error'); return; }
+    const t = Drawer._closeTotals || Drawer.totals(d);
+    const counted = parseFloat(document.getElementById('countedCash').value);
+    if (isNaN(counted) || counted < 0) { toast('Enter counted amount', 'error'); return; }
+    const variance = counted - t.expected;
+    const varReason = document.getElementById('varianceReason').value.trim();
+    if (Math.abs(variance) >= 0.01 && !varReason) { toast('Variance reason required', 'error'); return; }
+    const allocResult = Drawer._computeAllocations();
+    if (allocResult.error) { toast(allocResult.error, 'error'); return; }
+    const closedAt = new Date().toISOString();
+    const shift = {
+      id: d.id,
+      openedAt: d.openedAt,
+      closedAt,
+      openedBy: d.openedBy,
+      closedBy: currentEmployee.name,
+      openingAmount: d.openingAmount,
+      cashSales: t.cashSales,
+      cardSales: t.cardSales,
+      roomSales: t.roomSales,
+      paidIn: t.paidIn,
+      paidOut: t.paidOut,
+      expected: t.expected,
+      counted,
+      variance,
+      varianceReason: varReason,
+      tipPoolAmount: allocResult.pool,
+      tipAllocations: allocResult.allocations || [],
+      events: d.events || []
+    };
+    db.shifts.push(shift);
+    if (shift.tipAllocations.length) {
+      db.tipOuts.push({
+        id: uid(),
+        shiftId: shift.id,
+        ts: closedAt,
+        allocations: shift.tipAllocations
+      });
+      logAudit('tipout', `Tip pool $${shift.tipPoolAmount.toFixed(2)} allocated to ${shift.tipAllocations.length} emp(s)`);
+    }
+    db.cashDrawer = null;
+    saveDB();
+    logAudit('drawer', `Closed shift: counted $${counted.toFixed(2)}, expected $${t.expected.toFixed(2)}, variance $${variance.toFixed(2)}${varReason ? ` (${varReason})` : ''}`);
+    Modal.close('modalCloseShift');
+    toast('Shift closed');
+    Drawer.zReportFor(shift.id);
+    Drawer.render();
+  },
+  tipOutModal(shiftId) {
+    if (!Drawer._requireManager()) return;
+    const shift = db.shifts.find(s => s.id === shiftId);
+    if (!shift) return;
+    const start = new Date(shift.openedAt).getTime();
+    const end = new Date(shift.closedAt).getTime();
+    const inRange = t => { const ts = new Date(t.timestamp).getTime(); return ts >= start && ts <= end; };
+    const all = [...db.transactions.filter(inRange), ...db.roomCharges.filter(inRange)];
+    const empIds = new Set();
+    all.forEach(x => { if (x.employeeId) empIds.add(x.employeeId); });
+    const emps = db.employees.filter(e => empIds.has(e.id));
+    if (!emps.length) { toast('No employees to allocate to', 'error'); return; }
+    const method = prompt('Split method: "equal" or "percent"', 'equal');
+    if (!method) return;
+    let allocations = [];
+    if (method === 'equal') {
+      const share = shift.tipPoolAmount / emps.length;
+      allocations = emps.map(e => ({ employeeId: e.id, name: e.name, amount: +share.toFixed(2) }));
+    } else if (method === 'percent') {
+      const pcts = [];
+      for (const e of emps) {
+        const p = parseFloat(prompt(`% for ${e.name} (pool $${shift.tipPoolAmount.toFixed(2)})`, '0'));
+        if (isNaN(p)) return;
+        pcts.push({ employeeId: e.id, name: e.name, pct: p });
+      }
+      const sum = pcts.reduce((s, p) => s + p.pct, 0);
+      if (Math.abs(sum - 100) > 0.1) { toast(`% sum ${sum}, must be 100`, 'error'); return; }
+      allocations = pcts.map(p => ({ employeeId: p.employeeId, name: p.name, amount: +(shift.tipPoolAmount * p.pct / 100).toFixed(2) }));
+    } else { toast('Invalid method', 'error'); return; }
+    shift.tipAllocations = allocations;
+    db.tipOuts.push({ id: uid(), shiftId: shift.id, ts: new Date().toISOString(), allocations });
+    saveDB();
+    logAudit('tipout', `Tip pool $${shift.tipPoolAmount.toFixed(2)} allocated for shift ${shift.id}`);
+    toast('Tips allocated');
+    Drawer.render();
+  },
+  zReportFor(shiftId) {
+    const s = db.shifts.find(x => x.id === shiftId);
+    if (!s) return;
+    const start = new Date(s.openedAt).getTime();
+    const end = new Date(s.closedAt).getTime();
+    const inRange = t => { const ts = new Date(t.timestamp).getTime(); return ts >= start && ts <= end; };
+    const tx = db.transactions.filter(inRange);
+    const roomTx = db.roomCharges.filter(inRange);
+    const all = [...tx, ...roomTx];
+    const sum = (arr, fn) => arr.reduce((a, t) => a + fn(t), 0);
+    const byEmp = {};
+    all.forEach(t => { const k = t.employee || 'Unknown'; (byEmp[k] = byEmp[k] || { total: 0, count: 0, tips: 0 }); byEmp[k].total += t.total; byEmp[k].count++; byEmp[k].tips += t.tip || 0; });
+    const byCat = {};
+    all.forEach(t => t.items.forEach(i => {
+      const p = db.products.find(x => x.id === i.pid);
+      const cat = p?.category || 'other';
+      const amt = (i.basePrice + i.extra) * i.qty;
+      byCat[cat] = (byCat[cat] || 0) + amt;
+    }));
+    const voids = db.voidedSales.filter(v => { const ts = new Date(v.timestamp || v.date).getTime(); return ts >= start && ts <= end; });
+    let html = `<div style="font-family:var(--font-mono);font-size:13px;line-height:1.7;">`;
+    html += `<h3 style="font-family:var(--font-display);color:var(--amber-300);margin-bottom:8px;">Shift Z-Report</h3>`;
+    html += `<div>${new Date(s.openedAt).toLocaleString()} → ${new Date(s.closedAt).toLocaleString()}</div>`;
+    html += `<hr style="border-color:#444;margin:8px 0;">`;
+    html += `<div><strong>Revenue:</strong> $${sum(all, t => t.total).toFixed(2)}</div>`;
+    html += `<div>Card: $${s.cardSales.toFixed(2)} • Cash: $${s.cashSales.toFixed(2)} • Room: $${s.roomSales.toFixed(2)}</div>`;
+    html += `<div>Tips: $${sum(all, t => t.tip || 0).toFixed(2)} • Tx: ${all.length}</div>`;
+    html += `<div style="color:#ff6b6b;">Voids: ${voids.length} ($${sum(voids, v => v.total).toFixed(2)})</div>`;
+    html += `<hr style="border-color:#444;margin:8px 0;"><strong>Cash Drawer</strong>`;
+    html += `<div>Open: $${s.openingAmount.toFixed(2)} • In: $${s.paidIn.toFixed(2)} • Out: $${s.paidOut.toFixed(2)}</div>`;
+    html += `<div>Expected: $${s.expected.toFixed(2)} • Counted: $${s.counted.toFixed(2)} • Variance: $${s.variance.toFixed(2)}</div>`;
+    if (s.varianceReason) html += `<div style="color:#aaa;">Reason: ${esc(s.varianceReason)}</div>`;
+    html += `<hr style="border-color:#444;margin:8px 0;"><strong>By Employee</strong>`;
+    Object.entries(byEmp).forEach(([n, v]) => { html += `<div>${esc(n)}: $${v.total.toFixed(2)} (${v.count} tx, $${v.tips.toFixed(2)} tips)</div>`; });
+    html += `<hr style="border-color:#444;margin:8px 0;"><strong>By Category</strong>`;
+    Object.entries(byCat).sort((a, b) => b[1] - a[1]).forEach(([c, v]) => { html += `<div>${esc(c)}: $${v.toFixed(2)}</div>`; });
+    if (s.tipAllocations && s.tipAllocations.length) {
+      html += `<hr style="border-color:#444;margin:8px 0;"><strong>Tip-Out</strong>`;
+      s.tipAllocations.forEach(a => { html += `<div>${esc(a.name)}: $${a.amount.toFixed(2)}</div>`; });
+    }
+    html += `</div>`;
+    const win = window.open('', '_blank', 'width=480,height=720');
+    win.document.write(`<title>Shift Z-Report</title><body style="background:#1a110c;color:#f0e6d6;padding:20px;">${html}<button onclick="window.print()" style="margin-top:16px;padding:10px 20px;background:#c8922a;color:#000;border:0;border-radius:6px;font-weight:700;cursor:pointer;">Print</button></body>`);
   }
 };
 
