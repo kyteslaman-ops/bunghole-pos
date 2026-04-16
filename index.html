@@ -818,8 +818,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
         <div class="kpi-card"><div class="kpi-val" id="rptCash">$0</div><div class="kpi-label">Cash</div></div>
       </div>
       <table class="data-table">
-        <thead><tr><th>Time</th><th>Staff</th><th>Type</th><th>Items</th><th>Sub</th><th>Tip</th><th>Total</th></tr></thead>
+        <thead><tr><th>Time</th><th>Staff</th><th>Type</th><th>Items</th><th>Sub</th><th>Tip</th><th>Total</th><th></th></tr></thead>
         <tbody id="rptBody"></tbody>
+      </table>
+      <div class="view-header" style="margin-top:24px;"><div class="view-title" style="font-size:14px;">↩️ Refunds</div></div>
+      <table class="data-table">
+        <thead><tr><th>Time</th><th>Staff</th><th>Orig Tx</th><th>Items</th><th>Method</th><th>Reason</th><th>Amount</th></tr></thead>
+        <tbody id="refundBody"></tbody>
       </table>
     </div>
 
@@ -958,6 +963,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
       <div class="checkout-btns">
         <button class="btn-checkout" id="btnCard" onclick="Cart.openCheckout('card')" disabled>💳 Card</button>
         <button class="btn-checkout cash" id="btnCash" onclick="Cart.openCheckout('cash')" disabled>💵 Cash</button>
+        <button class="btn-checkout" id="btnSplit" onclick="Split.open()" disabled style="background:var(--purple);color:#fff;">🔀 Split</button>
       </div>
       <button class="btn-room-charge" onclick="Cart.openRoomCharge()">🏨 Room Charge</button>
       <button class="btn-clear-cart" onclick="Cart.cancelOrder()">Cancel Order</button>
@@ -1190,6 +1196,102 @@ input:focus, select:focus, textarea:focus { border-color: var(--amber-500); }
   </div>
 </div>
 
+<!-- SPLIT MODAL -->
+<div class="modal-overlay" id="modalSplit">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-head"><h2>🔀 Split Check</h2><button class="modal-close" onclick="Modal.close('modalSplit')">&times;</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="btn-sm btn-full" id="splitModeEven" onclick="Split.setMode('even')" style="padding:12px;">Even Split</button>
+        <button class="btn-sm btn-full" id="splitModeItem" onclick="Split.setMode('item')" style="padding:12px;">By Item</button>
+      </div>
+      <div id="splitEvenBody" style="display:none;">
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:8px;">Split total <span id="splitEvenTotal" style="color:var(--amber-300);font-weight:700;"></span> across N tickets</p>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+          <label style="font-size:12px;">Ways:</label>
+          <button class="btn-sm" onclick="Split.setN(Math.max(2,Split.n-1))">−</button>
+          <span id="splitN" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--amber-300);padding:0 10px;">2</span>
+          <button class="btn-sm" onclick="Split.setN(Split.n+1)">+</button>
+          <span style="flex:1;"></span>
+          <span style="font-size:12px;color:var(--text-muted);">Each: <span id="splitEvenEach" style="color:var(--amber-300);font-weight:700;"></span></span>
+        </div>
+      </div>
+      <div id="splitItemBody" style="display:none;">
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:8px;">Assign each item to a ticket</p>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;">
+          <label style="font-size:12px;">Tickets:</label>
+          <button class="btn-sm" onclick="Split.setN(Math.max(2,Split.n-1))">−</button>
+          <span id="splitItemN" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--amber-300);padding:0 10px;">2</span>
+          <button class="btn-sm" onclick="Split.setN(Split.n+1)">+</button>
+        </div>
+        <div id="splitItemRows" style="max-height:260px;overflow-y:auto;"></div>
+      </div>
+      <div id="splitTicketList" style="margin-top:12px;"></div>
+      <button class="btn-sm btn-gold btn-full" onclick="Split.begin()" style="padding:14px;margin-top:12px;" id="splitBeginBtn">Start Paying Tickets →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT PAY MODAL -->
+<div class="modal-overlay" id="modalSplitPay">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-head"><h2 id="splitPayTitle">Ticket Payment</h2><button class="modal-close" onclick="Split.cancel()">&times;</button></div>
+    <div class="modal-body" style="text-align:center;">
+      <div id="splitPayItems" style="text-align:left;background:var(--bg-card);padding:10px;border-radius:var(--radius-sm);margin-bottom:10px;font-size:12px;"></div>
+      <p style="color:var(--text-muted);font-size:12px;">Subtotal + Tax</p>
+      <div style="font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--text-secondary);margin-bottom:12px;" id="splitPaySubtotal">$0.00</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="btn-sm btn-full" onclick="Split.pickPayType('card',this)" id="splitTypeCard" style="padding:12px;">💳 Card</button>
+        <button class="btn-sm btn-full" onclick="Split.pickPayType('cash',this)" id="splitTypeCash" style="padding:12px;">💵 Cash</button>
+      </div>
+      <p style="color:var(--text-muted);font-size:12px;">Tip</p>
+      <div class="tip-grid">
+        <button class="tip-btn" onclick="Split.pickTip(this,0)">None</button>
+        <button class="tip-btn" onclick="Split.pickTip(this,15)">15%</button>
+        <button class="tip-btn selected" onclick="Split.pickTip(this,20)">20%</button>
+        <button class="tip-btn" onclick="Split.pickTip(this,25)">25%</button>
+      </div>
+      <input type="number" id="splitCustomTip" placeholder="Custom tip $" style="width:100%;text-align:center;margin:8px 0;" oninput="Split.customTip()">
+      <div style="background:var(--bg-card);padding:12px;border-radius:var(--radius-md);margin:12px 0;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:6px;">
+          <span>Tip:</span><span id="splitTipDisplay">$0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:22px;font-weight:700;color:var(--amber-300);">
+          <span>Total:</span><span id="splitTotalDisplay">$0.00</span>
+        </div>
+      </div>
+      <button class="btn-sm btn-gold btn-full" onclick="Split.payTicket()" style="padding:14px;">✓ Accept Ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- REFUND MODAL -->
+<div class="modal-overlay" id="modalRefund">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-head"><h2>↩️ Refund Transaction</h2><button class="modal-close" onclick="Modal.close('modalRefund')">&times;</button></div>
+    <div class="modal-body">
+      <div id="refundTxInfo" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Select items to refund:</p>
+      <div id="refundItemRows" style="max-height:240px;overflow-y:auto;background:var(--bg-card);padding:8px;border-radius:var(--radius-sm);"></div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button class="btn-sm btn-full" onclick="Refund.selectAll()" style="padding:10px;">Full Refund</button>
+        <button class="btn-sm btn-full" onclick="Refund.clearAll()" style="padding:10px;">Clear</button>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="form-label">Refund Method</label>
+        <select id="refundMethod"><option value="card">Card</option><option value="cash">Cash</option><option value="original">Original Method</option></select>
+      </div>
+      <div class="form-row" style="margin-top:8px;"><label class="form-label">Reason</label><input type="text" id="refundReason" placeholder="e.g., Wrong drink, customer unhappy"></div>
+      <div style="background:var(--bg-elevated);padding:12px;border-radius:var(--radius-md);margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Refund Subtotal:</span><span id="refundSub">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>Refund Tax:</span><span id="refundTax">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:20px;font-weight:700;color:var(--danger);"><span>Total Refund:</span><span id="refundTotal">$0.00</span></div>
+      </div>
+      <button class="btn-sm btn-danger btn-full" onclick="Refund.process()" style="padding:14px;margin-top:12px;">Process Refund</button>
+    </div>
+  </div>
+</div>
+
 <!-- HIDDEN RECEIPT FOR PRINT -->
 <div class="receipt-print" id="receiptPrint"></div>
 
@@ -1240,6 +1342,7 @@ let db = {
   transactions: [],
   roomCharges: [],
   voidedSales: [],
+  refunds: [],
   auditLog: [],
   settings: { taxRate: 6, bourbonTaxRate: 7.5, name: 'The Bunghole Bourbon Lounge' }
 };
@@ -1252,6 +1355,7 @@ function loadDB() {
       db = { ...db, ...loaded };
       if (!db.employees?.length) db.employees = [{ id: 'emp_owner', name: 'Owner', pin: '5366', role: 'manager', active: true }];
       if (!db.voidedSales) db.voidedSales = [];
+      if (!db.refunds) db.refunds = [];
       if (!db.auditLog) db.auditLog = [];
     }
   } catch(e) { console.error(e); }
@@ -1262,6 +1366,10 @@ function saveDB() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 
 let currentEmployee = null;
 let voidReason = '';
@@ -1828,16 +1936,25 @@ let roomTipAmount = 0;
 
 const Cart = {
   add(product, mod, extra) {
-    const existing = cart.find(c => c.pid === product.id && c.mod === mod);
+    const existing = cart.find(c => c.pid === product.id && c.mod === mod && !c.note);
     if (existing) {
       const totalQty = cart.filter(c => c.pid === product.id).reduce((s, c) => s + c.qty, 0);
       if (totalQty >= product.stock) { toast('Max stock', 'error'); return; }
       existing.qty++;
     } else {
-      cart.push({ cid: uid(), pid: product.id, name: product.name, basePrice: product.price, mod, extra: extra || 0, qty: 1 });
+      cart.push({ cid: uid(), pid: product.id, name: product.name, basePrice: product.price, mod, extra: extra || 0, qty: 1, note: '' });
     }
     Cart.render();
     toast(`${product.name}${mod ? ' · ' + mod : ''}`);
+  },
+
+  setNote(i) {
+    const c = cart[i];
+    if (!c) return;
+    const val = prompt('Note (e.g., no ice, extra lime):', c.note || '');
+    if (val === null) return;
+    c.note = val.trim();
+    Cart.render();
   },
 
   render() {
@@ -1851,7 +1968,7 @@ const Cart = {
       const price = (c.basePrice + c.extra) * c.qty;
       return `<div class="cart-item ${c.mod ? 'has-mod' : ''}">
         <div class="ci-top">
-          <div><div class="ci-name">${c.name}</div>${c.mod ? `<div class="ci-mod">${c.mod}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}</div>
+          <div><div class="ci-name">${esc(c.name)}</div>${c.mod ? `<div class="ci-mod">${esc(c.mod)}${c.extra ? ` +$${c.extra}` : ''}</div>` : ''}${c.note ? `<div class="ci-mod" style="color:var(--warning);">📝 ${esc(c.note)}</div>` : ''}</div>
           <div class="ci-price">$${price.toFixed(2)}</div>
         </div>
         <div class="ci-bottom">
@@ -1860,6 +1977,7 @@ const Cart = {
             <span class="qty-val">${c.qty}</span>
             <button class="qty-btn" onclick="Cart.qty(${i},1)">+</button>
           </div>
+          <button class="qty-btn" onclick="Cart.setNote(${i})" title="Add note" style="font-size:11px;padding:0 8px;">+note</button>
           <button class="ci-remove" onclick="Cart.remove(${i})">✕</button>
         </div>
       </div>`;
@@ -1949,6 +2067,7 @@ const Cart = {
     document.getElementById('cartTotal').textContent = '$' + finalTotal.toFixed(2);
     document.getElementById('btnCard').disabled = !cart.length;
     document.getElementById('btnCash').disabled = !cart.length;
+    const sp = document.getElementById('btnSplit'); if (sp) sp.disabled = !cart.length;
 
     // Update ID check bar visibility
     IDCheck.update();
@@ -2537,8 +2656,9 @@ const Receipt = {
 
     // Build receipt preview HTML
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
+      if (item.note) html += `<div class="receipt-mod">  📝 ${esc(item.note)}</div>`;
       return html;
     }).join('');
 
@@ -2578,8 +2698,9 @@ const Receipt = {
     const dateStr = time.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     let itemsHtml = tx.items.map(item => {
-      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${item.name}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
-      if (item.mod) html += `<div class="receipt-mod">  ↳ ${item.mod}</div>`;
+      let html = `<div class="receipt-item"><span class="qty">${item.qty}x</span><span class="name">${esc(item.name)}</span><span class="price">$${((item.basePrice + item.extra) * item.qty).toFixed(2)}</span></div>`;
+      if (item.mod) html += `<div class="receipt-mod">  ↳ ${esc(item.mod)}</div>`;
+      if (item.note) html += `<div class="receipt-mod">  📝 ${esc(item.note)}</div>`;
       return html;
     }).join('');
 
@@ -2638,6 +2759,7 @@ const Receipt = {
       const itemTotal = ((item.basePrice + item.extra) * item.qty).toFixed(2);
       text += `${item.qty}x ${item.name}\n`;
       if (item.mod) text += `   ↳ ${item.mod}\n`;
+      if (item.note) text += `   📝 ${item.note}\n`;
       text += `   $${itemTotal}\n`;
     });
 
@@ -2957,18 +3079,32 @@ const Reports = {
     document.getElementById('rptCard').textContent = '$' + tx.filter(t => t.type === 'card').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptCash').textContent = '$' + tx.filter(t => t.type === 'cash').reduce((s, t) => s + t.total, 0).toFixed(0);
     document.getElementById('rptBody').innerHTML = allTx.map(t => {
-      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${t.roomName}</span>` :
+      const typeLabel = t.type === 'room' ? `<span class="badge badge-blue">${esc(t.roomName)}</span>` :
         t.type === 'card' ? '<span class="badge badge-purple">Card</span>' : '<span class="badge badge-success">Cash</span>';
+      const refunded = (db.refunds || []).filter(r => r.originalTxId === t.id);
+      const refundedAmt = refunded.reduce((s, r) => s + r.total, 0);
+      const canRefund = currentEmployee?.role === 'manager';
       return `<tr>
         <td>${new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td>${t.employee}</td>
-        <td>${typeLabel}</td>
-        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</td>
+        <td>${esc(t.employee)}</td>
+        <td>${typeLabel}${refundedAmt > 0 ? ' <span class="badge badge-danger">R</span>' : ''}</td>
+        <td style="font-size:11px;">${t.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
         <td style="font-family:var(--font-mono);">$${(t.subtotal + t.tax).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);color:var(--success);">${t.tip ? '$' + t.tip.toFixed(0) : '-'}</td>
         <td style="font-family:var(--font-mono);color:var(--amber-300);font-weight:600;">$${t.total.toFixed(2)}</td>
+        <td>${canRefund ? `<button class="btn-sm btn-danger" onclick="Refund.open('${t.id}')" style="padding:4px 8px;font-size:11px;">↩️ Refund</button>` : ''}</td>
       </tr>`;
     }).join('');
+    const refunds = (db.refunds || []).filter(r => r.date === today).slice().reverse();
+    document.getElementById('refundBody').innerHTML = refunds.map(r => `<tr>
+      <td>${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+      <td>${esc(r.employee)}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;">${esc(r.originalTxId.slice(-6))}</td>
+      <td style="font-size:11px;">${r.items.map(i => i.qty + '× ' + esc(i.name)).join(', ')}</td>
+      <td><span class="badge badge-warning">${esc(r.method)}</span></td>
+      <td style="font-size:11px;">${esc(r.reason || '-')}</td>
+      <td style="font-family:var(--font-mono);color:var(--danger);font-weight:600;">-$${r.total.toFixed(2)}</td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">No refunds today</td></tr>';
   }
 };
 
@@ -3158,6 +3294,381 @@ function toast(msg, type = 'success') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+/* ═══════════════════════════════════════════
+   SPLIT CHECKS
+   ═══════════════════════════════════════════ */
+const Split = {
+  mode: 'even',
+  n: 2,
+  assign: {}, // cid -> ticket index (0..n-1) for item mode
+  tickets: [], // array of {items:[cart-like], type, tip, tipPct}
+  currentIdx: 0,
+  pending: null, // active ticket draft {type, tipPct, tipAmt}
+
+  open() {
+    if (!cart.length) return;
+    if (!IDCheck.canCheckout()) return;
+    Split.mode = 'even';
+    Split.n = 2;
+    Split.assign = {};
+    cart.forEach(c => { Split.assign[c.cid] = 0; });
+    Split.tickets = [];
+    Split.setMode('even');
+    Modal.open('modalSplit');
+  },
+
+  setMode(m) {
+    Split.mode = m;
+    document.getElementById('splitEvenBody').style.display = m === 'even' ? 'block' : 'none';
+    document.getElementById('splitItemBody').style.display = m === 'item' ? 'block' : 'none';
+    document.getElementById('splitModeEven').style.background = m === 'even' ? 'var(--amber-500)' : '';
+    document.getElementById('splitModeItem').style.background = m === 'item' ? 'var(--amber-500)' : '';
+    Split.refresh();
+  },
+
+  setN(n) {
+    Split.n = Math.max(2, Math.min(12, n));
+    cart.forEach(c => { if (Split.assign[c.cid] >= Split.n) Split.assign[c.cid] = 0; });
+    Split.refresh();
+  },
+
+  refresh() {
+    document.getElementById('splitN').textContent = Split.n;
+    document.getElementById('splitItemN').textContent = Split.n;
+    const total = Cart.getSubtotalPlusTax();
+    document.getElementById('splitEvenTotal').textContent = '$' + total.toFixed(2);
+    document.getElementById('splitEvenEach').textContent = '$' + (total / Split.n).toFixed(2);
+    // item rows
+    document.getElementById('splitItemRows').innerHTML = cart.map(c => {
+      const price = (c.basePrice + c.extra) * c.qty;
+      const btns = Array.from({length: Split.n}, (_, i) =>
+        `<button class="btn-sm ${Split.assign[c.cid] === i ? 'btn-gold' : ''}" onclick="Split.assignItem('${c.cid}',${i})" style="padding:4px 8px;min-width:32px;">${i+1}</button>`
+      ).join('');
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-subtle);">
+        <div style="flex:1;font-size:12px;"><strong>${c.qty}× ${esc(c.name)}</strong>${c.mod ? `<br><span style="color:var(--text-muted);font-size:10px;">${esc(c.mod)}</span>` : ''}<br><span style="color:var(--text-muted);">$${price.toFixed(2)}</span></div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:60%;">${btns}</div>
+      </div>`;
+    }).join('');
+    // ticket preview
+    const previews = Split.computeTickets();
+    document.getElementById('splitTicketList').innerHTML = previews.map((t, i) => {
+      const sub = t.items.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
+      const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+      const bSub = t.items.reduce((s, c) => {
+        if (c.isSpecial) return s;
+        const p = db.products.find(x => x.id === c.pid);
+        return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+      }, 0);
+      const salesTax = sub * (db.settings.taxRate / 100);
+      const bTax = bSub * ((db.settings.bourbonTaxRate || 0) / 100);
+      return `<div style="padding:6px 10px;background:var(--bg-card);border-radius:var(--radius-sm);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+        <strong>Ticket ${i+1}</strong>
+        <span style="font-family:var(--font-mono);color:var(--amber-300);">$${(sub + salesTax + bTax).toFixed(2)}</span>
+      </div>`;
+    }).join('');
+  },
+
+  assignItem(cid, i) {
+    Split.assign[cid] = i;
+    Split.refresh();
+  },
+
+  computeTickets() {
+    const tickets = Array.from({length: Split.n}, () => ({ items: [] }));
+    if (Split.mode === 'even') {
+      // Even split: we synthesize one "virtual" ticket per N with proportional subtotal
+      const sub = cart.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
+      const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+      const bourbonSub = cart.reduce((s, c) => {
+        if (c.isSpecial) return s;
+        const p = db.products.find(x => x.id === c.pid);
+        return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+      }, 0);
+      const perSub = sub / Split.n;
+      const perBourbon = bourbonSub / Split.n;
+      for (let i = 0; i < Split.n; i++) {
+        tickets[i]._evenSub = perSub;
+        tickets[i]._evenBourbon = perBourbon;
+        tickets[i]._even = true;
+        tickets[i].items = cart.map(c => ({ ...c, qty: c.qty / Split.n, _evenShare: true }));
+      }
+    } else {
+      cart.forEach(c => {
+        const idx = Split.assign[c.cid] || 0;
+        tickets[idx].items.push({ ...c });
+      });
+    }
+    return tickets;
+  },
+
+  begin() {
+    if (Split.mode === 'item') {
+      const used = new Set(Object.values(Split.assign));
+      // ensure at least 2 tickets used and no empty ticket
+      for (let i = 0; i < Split.n; i++) {
+        if (!used.has(i)) { toast(`Ticket ${i+1} is empty`, 'error'); return; }
+      }
+    }
+    Split.tickets = Split.computeTickets();
+    Split.currentIdx = 0;
+    Modal.close('modalSplit');
+    Split.showPay();
+  },
+
+  showPay() {
+    if (Split.currentIdx >= Split.tickets.length) {
+      Split.finalize();
+      return;
+    }
+    const t = Split.tickets[Split.currentIdx];
+    document.getElementById('splitPayTitle').textContent = `Ticket ${Split.currentIdx + 1} of ${Split.tickets.length}`;
+    const sub = t._even ? t._evenSub : t.items.reduce((s, c) => s + (c.basePrice + c.extra) * c.qty, 0);
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+    const bSub = t._even ? t._evenBourbon : t.items.reduce((s, c) => {
+      if (c.isSpecial) return s;
+      const p = db.products.find(x => x.id === c.pid);
+      return s + (bourbonCats.includes(p?.category) ? (c.basePrice + c.extra) * c.qty : 0);
+    }, 0);
+    const salesTax = sub * (db.settings.taxRate / 100);
+    const bTax = bSub * ((db.settings.bourbonTaxRate || 0) / 100);
+    const total = sub + salesTax + bTax;
+    Split.pending = { type: 'card', tipPct: 20, tipAmt: total * 0.20, sub, salesTax, bTax, total };
+    document.getElementById('splitPayItems').innerHTML = t._even
+      ? `<div style="color:var(--text-muted);">Share of full order (1/${Split.tickets.length})</div>`
+      : t.items.map(i => `<div>${i.qty}× ${esc(i.name)}${i.mod ? ` <span style="color:var(--text-muted);">(${esc(i.mod)})</span>` : ''}</div>`).join('');
+    document.getElementById('splitPaySubtotal').textContent = '$' + total.toFixed(2);
+    document.getElementById('splitCustomTip').value = '';
+    document.querySelectorAll('#modalSplitPay .tip-btn').forEach((b, i) => b.classList.toggle('selected', i === 2));
+    Split.pickPayType('card', document.getElementById('splitTypeCard'));
+    Split.updateTipDisplay();
+    Modal.open('modalSplitPay');
+  },
+
+  pickPayType(type, btn) {
+    Split.pending.type = type;
+    document.getElementById('splitTypeCard').style.background = type === 'card' ? 'var(--amber-500)' : '';
+    document.getElementById('splitTypeCash').style.background = type === 'cash' ? 'var(--amber-500)' : '';
+  },
+
+  pickTip(btn, pct) {
+    document.querySelectorAll('#modalSplitPay .tip-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    Split.pending.tipPct = pct;
+    Split.pending.tipAmt = Split.pending.total * (pct / 100);
+    document.getElementById('splitCustomTip').value = '';
+    Split.updateTipDisplay();
+  },
+
+  customTip() {
+    Split.pending.tipAmt = parseFloat(document.getElementById('splitCustomTip').value) || 0;
+    document.querySelectorAll('#modalSplitPay .tip-btn').forEach(b => b.classList.remove('selected'));
+    Split.updateTipDisplay();
+  },
+
+  updateTipDisplay() {
+    document.getElementById('splitTipDisplay').textContent = '$' + Split.pending.tipAmt.toFixed(2);
+    document.getElementById('splitTotalDisplay').textContent = '$' + (Split.pending.total + Split.pending.tipAmt).toFixed(2);
+  },
+
+  payTicket() {
+    const t = Split.tickets[Split.currentIdx];
+    const p = Split.pending;
+    t.paid = { type: p.type, tip: p.tipAmt, sub: p.sub, salesTax: p.salesTax, bourbonTax: p.bTax };
+    Split.currentIdx++;
+    Modal.close('modalSplitPay');
+    setTimeout(() => Split.showPay(), 100);
+  },
+
+  cancel() {
+    if (!confirm('Cancel split? Tickets already paid will remain.')) return;
+    Modal.close('modalSplitPay');
+    Split.tickets = [];
+    Split.pending = null;
+  },
+
+  finalize() {
+    // Deduct stock once (from original cart)
+    cart.forEach(c => {
+      if (c.isSpecial) return;
+      const p = db.products.find(x => x.id === c.pid);
+      if (p) p.stock = Math.max(0, p.stock - c.qty);
+    });
+    const groupId = uid();
+    Split.tickets.forEach((t, i) => {
+      if (!t.paid) return;
+      const sub = t.paid.sub;
+      const salesTax = t.paid.salesTax;
+      const bourbonTax = t.paid.bourbonTax;
+      const tax = salesTax + bourbonTax;
+      const items = t._even
+        ? cart.map(c => ({ ...c, qty: c.qty, _evenShare: true, _evenOf: Split.tickets.length }))
+        : t.items.map(c => ({ ...c }));
+      const tx = {
+        id: uid(),
+        type: t.paid.type,
+        roomId: null,
+        roomName: null,
+        employee: currentEmployee?.name || 'Unknown',
+        employeeId: currentEmployee?.id || null,
+        items,
+        subtotal: sub,
+        tax,
+        salesTax,
+        bourbonTax,
+        discount: 0,
+        tip: t.paid.tip,
+        total: sub + tax + t.paid.tip,
+        split: { groupId, index: i + 1, of: Split.tickets.length, mode: Split.mode },
+        idChecked: IDCheck.hasAlcohol() ? idVerified : null,
+        timestamp: new Date().toISOString(),
+        date: new Date().toDateString()
+      };
+      db.transactions.push(tx);
+      logAudit('sale', `Split ${i+1}/${Split.tickets.length} ${t.paid.type}: $${tx.total.toFixed(2)}`);
+    });
+    saveDB();
+    toast(`${Split.tickets.length} tickets recorded`);
+    cart = [];
+    tipAmount = 0;
+    orderDiscount = { percent: 0, reason: '' };
+    idVerified = false;
+    Split.tickets = [];
+    Cart.render();
+    POS.render();
+  }
+};
+
+/* ═══════════════════════════════════════════
+   REFUNDS (Manager-only, post-settlement)
+   ═══════════════════════════════════════════ */
+const Refund = {
+  tx: null,
+  selected: {}, // cid -> qty
+
+  open(txId) {
+    if (currentEmployee?.role !== 'manager') { toast('Manager access required', 'error'); return; }
+    const tx = db.transactions.find(t => t.id === txId) || db.roomCharges.find(t => t.id === txId);
+    if (!tx) { toast('Transaction not found', 'error'); return; }
+    Refund.tx = tx;
+    Refund.selected = {};
+    document.getElementById('refundTxInfo').innerHTML = `Original: <strong>${esc(tx.type)}</strong> · ${new Date(tx.timestamp).toLocaleString()} · Total $${tx.total.toFixed(2)}`;
+    document.getElementById('refundReason').value = '';
+    Refund.render();
+    Modal.open('modalRefund');
+  },
+
+  render() {
+    const alreadyRefunded = {};
+    (db.refunds || []).filter(r => r.originalTxId === Refund.tx.id).forEach(r => {
+      r.items.forEach(i => { alreadyRefunded[i.cid] = (alreadyRefunded[i.cid] || 0) + i.qty; });
+    });
+    document.getElementById('refundItemRows').innerHTML = Refund.tx.items.map(i => {
+      const refundedQty = alreadyRefunded[i.cid] || 0;
+      const maxQty = i.qty - refundedQty;
+      const curSel = Refund.selected[i.cid] || 0;
+      const disabled = maxQty <= 0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border-subtle);${disabled ? 'opacity:0.4;' : ''}">
+        <div style="flex:1;font-size:12px;"><strong>${esc(i.name)}</strong> ${i.mod ? `<span style="color:var(--text-muted);">(${esc(i.mod)})</span>` : ''}${i.note ? `<br><span style="color:var(--warning);font-size:10px;">📝 ${esc(i.note)}</span>` : ''}<br><span style="color:var(--text-muted);">$${(i.basePrice + i.extra).toFixed(2)} ea · ${refundedQty > 0 ? refundedQty + ' refunded, ' : ''}${maxQty} avail</span></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-sm" onclick="Refund.setQty('${i.cid}',${Math.max(0,curSel-1)})" ${disabled || curSel <= 0 ? 'disabled' : ''}>−</button>
+          <span style="font-family:var(--font-mono);font-weight:700;min-width:18px;text-align:center;">${curSel}</span>
+          <button class="btn-sm" onclick="Refund.setQty('${i.cid}',${Math.min(maxQty,curSel+1)})" ${disabled || curSel >= maxQty ? 'disabled' : ''}>+</button>
+        </div>
+      </div>`;
+    }).join('');
+    Refund.updateTotals();
+  },
+
+  setQty(cid, q) {
+    Refund.selected[cid] = q;
+    Refund.render();
+  },
+
+  selectAll() {
+    const alreadyRefunded = {};
+    (db.refunds || []).filter(r => r.originalTxId === Refund.tx.id).forEach(r => {
+      r.items.forEach(i => { alreadyRefunded[i.cid] = (alreadyRefunded[i.cid] || 0) + i.qty; });
+    });
+    Refund.tx.items.forEach(i => {
+      Refund.selected[i.cid] = Math.max(0, i.qty - (alreadyRefunded[i.cid] || 0));
+    });
+    Refund.render();
+  },
+
+  clearAll() {
+    Refund.selected = {};
+    Refund.render();
+  },
+
+  updateTotals() {
+    const tx = Refund.tx;
+    let sub = 0;
+    const bourbonCats = ['well', 'call', 'premium', 'topshelf', 'rare', 'cocktail', 'flight'];
+    let bSub = 0;
+    tx.items.forEach(i => {
+      const q = Refund.selected[i.cid] || 0;
+      if (q <= 0) return;
+      const lineSub = (i.basePrice + i.extra) * q;
+      sub += lineSub;
+      if (i.isSpecial) return;
+      const p = db.products.find(x => x.id === i.pid);
+      if (bourbonCats.includes(p?.category)) bSub += lineSub;
+    });
+    const salesTax = sub * (db.settings.taxRate / 100);
+    const bTax = bSub * ((db.settings.bourbonTaxRate || 0) / 100);
+    const tax = salesTax + bTax;
+    const total = sub + tax;
+    document.getElementById('refundSub').textContent = '$' + sub.toFixed(2);
+    document.getElementById('refundTax').textContent = '$' + tax.toFixed(2);
+    document.getElementById('refundTotal').textContent = '$' + total.toFixed(2);
+    Refund._calc = { sub, salesTax, bourbonTax: bTax, tax, total };
+  },
+
+  process() {
+    const reason = document.getElementById('refundReason').value.trim();
+    if (!reason) { toast('Reason required', 'error'); return; }
+    const method = document.getElementById('refundMethod').value;
+    const items = [];
+    Refund.tx.items.forEach(i => {
+      const q = Refund.selected[i.cid] || 0;
+      if (q > 0) items.push({ ...i, qty: q });
+    });
+    if (!items.length) { toast('Select items', 'error'); return; }
+    if (!confirm(`Refund $${Refund._calc.total.toFixed(2)} via ${method}?`)) return;
+    // Restore stock (skip special)
+    items.forEach(i => {
+      if (i.isSpecial) return;
+      const p = db.products.find(x => x.id === i.pid);
+      if (p) p.stock += i.qty;
+    });
+    const finalMethod = method === 'original' ? Refund.tx.type : method;
+    const refund = {
+      id: uid(),
+      originalTxId: Refund.tx.id,
+      type: 'refund',
+      method: finalMethod,
+      employee: currentEmployee?.name || 'Unknown',
+      employeeId: currentEmployee?.id || null,
+      items,
+      subtotal: Refund._calc.sub,
+      salesTax: Refund._calc.salesTax,
+      bourbonTax: Refund._calc.bourbonTax,
+      tax: Refund._calc.tax,
+      total: Refund._calc.total,
+      reason,
+      timestamp: new Date().toISOString(),
+      date: new Date().toDateString()
+    };
+    if (!db.refunds) db.refunds = [];
+    db.refunds.push(refund);
+    logAudit('refund', `Refunded $${refund.total.toFixed(2)} (${finalMethod}) from tx ${Refund.tx.id.slice(-6)}: ${reason}`);
+    saveDB();
+    Modal.close('modalRefund');
+    toast(`Refund processed: $${refund.total.toFixed(2)}`);
+    Reports.render();
+  }
+};
 
 /* BOOT */
 App.init();
